@@ -1,6 +1,8 @@
 __pycache__/
 *.pyc
 *.pyo
+.pytest_cache/
+.tokensave/
 application_prep.csv
 master_resume.txt
 jobs_found.csv
