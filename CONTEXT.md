@@ -12,11 +12,11 @@
 
 ## Core entities
 
-- **Job** — A discovered listing with fields: id, title, company, location, source, link, published, applied, summary.
-- **Application** — A job the user applied to with fields: job_id, title, company, date_applied, result, notes.
+- **Job** — A discovered listing with fields: id, title, company, location, source, link, published, status, status_date, summary.
+- **Application** — A `Job` whose status moved past `new`. Status is one of: new, applied, interview, rejected. `status_date` records the last change. There is no separate applications file.
 - **PrepResult** — Tailored cover-letter materials with fields: job_id, title, company, link, tailored_bullets, missing_keywords, cover_snippet.
 
 ## Architecture
 
-- **store.py** — plain module functions (`load_jobs`, `add_jobs`, `load_applications`, `save_prep_results`, `this_week`) that own the CSV schemas and date formats. All feed-derived text is sanitized to plain text before storage; `dashboard.py` additionally HTML-escapes at render.
+- **store.py** — plain module functions (`load_jobs`, `add_jobs`, `get_status`, `set_status`, `save_prep_results`, `this_week`) that own the CSV schemas and date formats. All feed-derived text is sanitized to plain text before storage; `dashboard.py` additionally HTML-escapes at render.
 - **config.toml + config.py** — All configuration (feeds, keywords, bullet map, cover template) in `config.toml`. `config.py` loads it once at import and exports typed constants. `KEYWORD_PATTERN` is generated from `BULLET_MAP` keys to prevent drift.

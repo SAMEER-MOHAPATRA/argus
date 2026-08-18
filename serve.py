@@ -41,7 +41,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         job_id = self.path.rsplit("/", 1)[-1]
-        if self.path.startswith(dashboard.APPLIED_ROUTE) and store.mark_applied(job_id):
+        if self.path.startswith(dashboard.APPLIED_ROUTE) and store.set_status(job_id, "applied"):
             self.send_response(204)
         else:
             self.send_response(404)

@@ -15,7 +15,7 @@ JOBS = [
         "source": "RemoteOK",
         "published": "2026-07-01 10:00 UTC",
         "link": "https://example.com/job/evil1",
-        "applied": "",
+        "status": "new",
         "_score": 90,
     },
     {
@@ -24,7 +24,7 @@ JOBS = [
         "source": "WWR",
         "published": "2026-06-20 10:00 UTC",
         "link": "https://example.com/job/done1",
-        "applied": "yes",
+        "status": "applied",
         "_score": 40,
     },
 ]
@@ -66,14 +66,13 @@ assert score_job(job_at(20, summary="sql python power bi tableau excel etl")) ==
 # --- render: higher score first, ties stay newest-first ---
 def full_job(job_id: str, days_ago: int, title: str = "") -> dict:
     return {**job_at(days_ago, title=title), "id": job_id, "company": "", "source": "",
-            "link": f"https://example.com/{job_id}", "applied": ""}
+            "link": f"https://example.com/{job_id}", "status": "new"}
 
 store.load_jobs = lambda: [
     full_job("lo_old", 18),
     full_job("hi", 20, title="Data Analyst"),
     full_job("lo_new", 16),
 ]
-store.load_applications = lambda: []
 page = render()
 assert page.index("data-id='hi'") < page.index("data-id='lo_new'") < page.index("data-id='lo_old'")
 

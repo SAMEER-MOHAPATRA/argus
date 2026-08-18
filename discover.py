@@ -57,9 +57,8 @@ def setup_logging(verbose: bool = False) -> None:
 
 def load_seen_ids() -> set[str]:
     seen: set[str] = set()
-    for rows in (store.load_jobs(), store.load_applications()):
-        for row in rows:
-            seen.update(filter(None, [row.get("id"), row.get("job_id"), row.get("link")]))
+    for row in store.load_jobs():
+        seen.update(filter(None, [row.get("id"), row.get("link")]))
     log.info("Loaded %d seen IDs from store", len(seen))
     return seen
 
@@ -184,15 +183,16 @@ def process_feed(
                 continue
 
             results.append({
-                "id":        job_id,
-                "title":     title,
-                "company":   company,
-                "location":  extract_location(entry, label),
-                "source":    label,
-                "link":      link,
-                "published": pub_date.strftime(store.UTC_FMT),
-                "applied":   "",
-                "summary":   description,
+                "id":          job_id,
+                "title":       title,
+                "company":     company,
+                "location":    extract_location(entry, label),
+                "source":      label,
+                "link":        link,
+                "published":   pub_date.strftime(store.UTC_FMT),
+                "status":      "new",
+                "status_date": "",
+                "summary":     description,
             })
 
         log.info(

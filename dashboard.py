@@ -143,7 +143,7 @@ def _build_html(
     )
     job_rows = []
     for j in ranked_jobs:
-        applied = bool(j.get("applied", "").strip())  # any nonempty value means applied
+        applied = store.get_status(j) != "new"  # anything past 'new' is applied to
         link = j.get("link", "")
         apply_cell = (
             "<span class='muted'>Applied</span>" if applied
@@ -291,12 +291,15 @@ document.querySelectorAll('button.copy').forEach(b =>
 
 def render() -> str:
     """Load the store and return the dashboard as an HTML string."""
+    all_jobs = store.load_jobs()
     # only show jobs published in the last 21 days
-    jobs = store.this_week(store.load_jobs(), "published", store.UTC_FMT, days=21)
-    apps = store.load_applications()
+    jobs = store.this_week(all_jobs, "published", store.UTC_FMT, days=21)
+    # applications come from the full store, not the window — an old posting you
+    # applied to still counts
+    apps = [j for j in all_jobs if store.get_status(j) != "new"]
 
     jobs_week = store.this_week(jobs, "published", store.UTC_FMT)
-    apps_week = store.this_week(apps, "date_applied")
+    apps_week = store.this_week(apps, "status_date")
 
     feed_breakdown = Counter(j.get("source", "Unknown") for j in jobs).most_common()
 
