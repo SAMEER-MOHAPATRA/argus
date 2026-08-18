@@ -1,4 +1,5 @@
-"""Checks on the _build_html seam: escaping of feed text and applied-row rendering.
+"""Checks on the _build_html seam: escaping of feed text, applied-row rendering,
+and the inline mark-applied control.
 
 Run: python test_dashboard.py
 """
@@ -21,8 +22,10 @@ JOBS = [
     {
         "id": "done1",
         "title": "Business Analyst",
+        "company": "Globex",
         "source": "WWR",
         "published": "2026-06-20 10:00 UTC",
+        "status_date": "2026-06-21",
         "link": "https://example.com/job/done1",
         "status": "applied",
         "_score": 40,
@@ -31,21 +34,27 @@ JOBS = [
 
 html = _build_html(
     total_jobs=2, jobs_week=1, feed_breakdown=[("RemoteOK", 1), ("WWR", 1)],
-    ranked_jobs=JOBS, total_apps=1, apps_week=0,
+    ranked_jobs=JOBS, total_apps=1, apps_week=0, recent_apps=[JOBS[1]],
 )
 
 # untrusted feed title must be escaped, never raw
 assert "<script>alert(1)</script>" not in html
 assert "&lt;script&gt;" in html
 
-# pending job gets an Apply link; applied job gets muted marker + done row
-assert "data-id='evil1'" in html
+# pending job gets an Apply link + inline mark button; applied job gets neither
+assert f"href='{PREP_ROUTE}evil1'" in html  # prep route rendered server-side, not by JS
+assert "<button class='mark' data-id='evil1'>" in html
 assert "data-id='done1'" not in html
 assert "<span class='muted'>Applied</span>" in html
 assert "class=done" in html
 
-# emitted JS uses the same route constants serve.py routes on
-assert f"'{PREP_ROUTE}'" in html and f"'{APPLIED_ROUTE}'" in html
+# the mark button POSTs to APPLIED_ROUTE; the old localStorage flow is gone
+assert f"'{APPLIED_ROUTE}'" in html
+assert "localStorage" not in html and "confirm(" not in html
+
+# Recent Applications panel lists the applied job, newest status_date first
+assert "Recent Applications" in html
+assert "<td>Globex</td>" in html and "2026-06-21" in html
 
 # --- score_job: freshness buckets, title/location match, skill cap ---
 def job_at(days_ago: int, **kw) -> dict:

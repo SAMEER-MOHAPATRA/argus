@@ -1,24 +1,27 @@
 """
-dashboard.py — generates a local HTML dashboard from the store.
+dashboard.py — renders the job dashboard and serves it locally.
+
+Serve-only: every visit renders fresh from the store, so there is no
+dashboard.html artifact to go stale.
 
 Usage:
-    python dashboard.py
-    python dashboard.py --open   # auto-open in browser
+    python dashboard.py      # opens http://localhost:8765/
 """
 
-import argparse
+import socket
 import webbrowser
 from collections import Counter
 from datetime import datetime, timezone
 from html import escape
-from pathlib import Path
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from urllib.parse import quote, unquote
 
+import prep
 import store
 
-DASHBOARD_PATH = Path("dashboard.html")
+PORT = 8765
 
-# route contract with serve.py — the emitted JS and the server routing both
-# use these, so a rename lands in one place
+# routes are shared by the emitted JS and the Handler below — rename in one place
 PREP_ROUTE = "/prep/"
 APPLIED_ROUTE = "/applied/"
 
@@ -124,6 +127,13 @@ a.apply {
   font-size: .8rem; font-weight: 600;
 }
 a.apply:hover { background: var(--caramel); }
+button.mark {
+  padding: .2rem .55rem; border-radius: .5rem; cursor: pointer;
+  border: 1px solid var(--line); background: var(--cream); color: var(--mocha);
+  font: 600 .8rem/1.5 inherit;
+}
+button.mark:hover:enabled { background: var(--caramel); color: var(--cream); }
+button.mark:disabled { opacity: .5; cursor: default; }
 tr.done td { opacity: .45; }"""
 
 
@@ -134,6 +144,7 @@ def _build_html(
     ranked_jobs: list[dict],
     total_apps: int,
     apps_week: int,
+    recent_apps: list[dict],
 ) -> str:
     # escape at the render boundary — feed data is untrusted
     feed_rows = "".join(
@@ -141,16 +152,32 @@ def _build_html(
         f"<td class='num'>{count}</td></tr>"
         for label, count in feed_breakdown
     )
+    app_rows = "".join(
+        f"<tr><td class='muted'>{escape(a.get('status_date', ''))}</td>"
+        f"<td>{escape(a.get('title', ''))}</td>"
+        f"<td>{escape(a.get('company', ''))}</td>"
+        f"<td>{escape(store.get_status(a).title())}</td></tr>"
+        for a in recent_apps
+    ) or "<tr><td class='muted' colspan='4'>Nothing yet — mark a job applied below.</td></tr>"
+    # the one tip worth keeping from review.py
+    pace_tip = (
+        '<p class="muted" style="margin:.75rem 0 0">Aim for 3-5 quality applications per week.</p>'
+        if apps_week < 3 else ""
+    )
     job_rows = []
     for j in ranked_jobs:
         applied = store.get_status(j) != "new"  # anything past 'new' is applied to
-        link = j.get("link", "")
-        apply_cell = (
-            "<span class='muted'>Applied</span>" if applied
-            else f"<a class='apply' href='{escape(link)}' data-id='{escape(j.get('id', ''))}' "
-                 f"data-title='{escape(j['title'])}' target='_blank'>Apply</a>" if link
-            else "<span class='muted'>—</span>"
-        )
+        job_id = j.get("id", "")
+        if applied:
+            apply_cell = f"<span class='muted'>{escape(store.get_status(j).title())}</span>"
+        elif j.get("link"):
+            # served over http only, so the prep route is rendered here, not patched by JS
+            apply_cell = (
+                f"<a class='apply' href='{PREP_ROUTE}{quote(job_id)}' target='_blank'>Apply</a> "
+                f"<button class='mark' data-id='{escape(job_id)}'>&#10003; Applied</button>"
+            )
+        else:
+            apply_cell = "<span class='muted'>—</span>"
         job_rows.append(
             f"<tr{' class=done' if applied else ''}>"
             f"<td class='num'>{j['_score']}</td>"
@@ -190,6 +217,14 @@ def _build_html(
       <tbody>{feed_rows}</tbody>
     </table>
   </div>
+  <div class="card">
+    <h2>Recent Applications</h2>
+    <table>
+      <thead><tr><th>Date</th><th>Title</th><th>Company</th><th>Status</th></tr></thead>
+      <tbody>{app_rows}</tbody>
+    </table>
+    {pace_tip}
+  </div>
 </div>
 
 <div class="card" style="margin-top:1.25rem">
@@ -201,46 +236,16 @@ def _build_html(
   </table>
 </div>
 <script>
-// served over http: Apply routes through the prep page; file:// keeps direct links
-if (location.protocol.startsWith('http'))
-  document.querySelectorAll('a.apply').forEach(a =>
-    a.href = '{PREP_ROUTE}' + encodeURIComponent(a.dataset.id));
-
-// remember which Apply links were clicked; ask about them on revisit
-const KEY = 'pendingApply';
-const load = () => JSON.parse(localStorage.getItem(KEY) || '{{}}');
-const save = p => localStorage.setItem(KEY, JSON.stringify(p));
-
-document.querySelectorAll('a.apply').forEach(a =>
-  a.addEventListener('click', () => {{
-    const p = load();
-    p[a.dataset.id] = a.dataset.title;
-    save(p);
+// one click, one write — the server is the only state, nothing cached client-side
+document.querySelectorAll('button.mark').forEach(b =>
+  b.addEventListener('click', async () => {{
+    b.disabled = true;
+    const r = await fetch('{APPLIED_ROUTE}' + encodeURIComponent(b.dataset.id),
+                          {{method: 'POST'}});
+    if (r.ok) location.reload();
+    else {{ b.disabled = false; b.textContent = 'failed'; }}
   }})
 );
-
-let asking = false;
-async function askPending() {{
-  if (asking) return;
-  asking = true;
-  const p = load();
-  for (const [id, title] of Object.entries(p)) {{
-    const yes = confirm('Did you apply to:\\n\\n' + title + '?');
-    delete p[id];
-    save(p);
-    if (yes) {{
-      await fetch('{APPLIED_ROUTE}' + encodeURIComponent(id), {{method: 'POST'}});
-      location.reload();
-      return;
-    }}
-  }}
-  asking = false;
-}}
-
-window.addEventListener('load', askPending);
-document.addEventListener('visibilitychange', () => {{
-  if (!document.hidden) askPending();
-}});
 </script>"""
     return _page("Job Tracker Dashboard", "64rem", _DASH_CSS, body)
 
@@ -300,6 +305,7 @@ def render() -> str:
 
     jobs_week = store.this_week(jobs, "published", store.UTC_FMT)
     apps_week = store.this_week(apps, "status_date")
+    recent_apps = sorted(apps, key=lambda a: a.get("status_date", ""), reverse=True)[:5]
 
     feed_breakdown = Counter(j.get("source", "Unknown") for j in jobs).most_common()
 
@@ -316,19 +322,64 @@ def render() -> str:
         ranked_jobs=ranked,
         total_apps=len(apps),
         apps_week=len(apps_week),
+        recent_apps=recent_apps,
     )
 
 
-def main(open_browser: bool = False) -> None:
-    DASHBOARD_PATH.write_text(render(), encoding="utf-8")
-    print(f"[OK] Dashboard written to {DASHBOARD_PATH}")
+# ─── Server ──────────────────────────────────────────────────────────────
 
-    if open_browser:
-        webbrowser.open(DASHBOARD_PATH.resolve().as_uri())
+
+class Handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path.startswith(PREP_ROUTE):
+            job_id = unquote(self.path.rsplit("/", 1)[-1])
+            job = next((j for j in store.load_jobs() if j.get("id") == job_id), None)
+            if job is None:
+                self.send_error(404)
+                return
+            # fetches the live JD, tailors bullets/cover, upserts application_prep.csv
+            body = render_prep(job, prep.prep_one(job)).encode("utf-8")
+        elif self.path in ("/", "/dashboard.html"):
+            body = render().encode("utf-8")
+        else:
+            self.send_error(404)
+            return
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def do_POST(self):
+        job_id = unquote(self.path.rsplit("/", 1)[-1])
+        if self.path.startswith(APPLIED_ROUTE) and store.set_status(job_id, "applied"):
+            self.send_response(204)
+        else:
+            self.send_response(404)
+        self.end_headers()
+
+    def log_message(self, format: str, *args) -> None:  # quiet console
+        pass
+
+
+def _already_running() -> bool:
+    # ponytail: Windows SO_REUSEADDR lets a busy port re-bind without OSError,
+    # so probe by connecting instead of catching a bind error.
+    with socket.socket() as s:
+        s.settimeout(0.3)
+        return s.connect_ex(("127.0.0.1", PORT)) == 0
+
+
+def serve() -> None:
+    """Serve the dashboard on PORT, rendering fresh on every request."""
+    url = f"http://localhost:{PORT}/"
+    webbrowser.open(url)  # always open a fresh tab
+    if _already_running():
+        print(f"Dashboard already running at {url}")
+        return
+    print(f"Dashboard at {url}  (Ctrl+C to stop)")
+    HTTPServer(("127.0.0.1", PORT), Handler).serve_forever()
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Generate job tracker dashboard")
-    parser.add_argument("--open", action="store_true", help="Open dashboard in browser")
-    args = parser.parse_args()
-    main(open_browser=args.open)
+    serve()
