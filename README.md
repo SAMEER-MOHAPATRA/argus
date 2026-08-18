@@ -6,8 +6,7 @@ Python pipeline that discovers, scores, and tracks job applications end-to-end.
 
 - **Discover** — scrapes job listings from RSS feeds (WeWorkRemotely, RemoteOK, and more via `config.toml`), filters by role keywords and seniority, dedupes with content hashing → `jobs_found.csv`
 - **Prep** — keyword-gap analysis between each job description and your master resume; generates tailored resume bullets and cover-letter snippets → `application_prep.csv`
-- **Review** — weekly summary of applications sent and results
-- **Dashboard** — self-contained HTML dashboard ranking jobs by match score, with one-click apply links
+- **Dashboard** — local web dashboard ranking jobs by match score, with one-click apply and mark-applied, plus a recent-applications panel
 
 ## Usage
 
@@ -15,8 +14,7 @@ Python pipeline that discovers, scores, and tracks job applications end-to-end.
 pip install -r requirements.txt
 python discover.py --days 7    # find new jobs
 python prep.py                 # tailor materials (needs master_resume.txt)
-python review.py               # weekly review
-python dashboard.py --open     # build + open dashboard
+python dashboard.py            # serve the dashboard at localhost:8765
 ```
 
 Create a `master_resume.txt` with your resume text — `prep.py` matches job keywords against it. Personal data files (`master_resume.txt`, `jobs_*.csv`) are gitignored.

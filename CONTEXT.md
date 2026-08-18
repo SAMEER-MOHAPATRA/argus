@@ -6,9 +6,9 @@
 
 **Preparation** — Cover-letter tailoring for a `Job` by extracting keywords from its description and matching them against a bullet library. Produces `PrepResult` records. Interface: `prep_one(job)` preps a single job on demand (fetches the live JD from the job link, falling back to the stored summary) and upserts `application_prep.csv`; batch `main()` preps all jobs from stored summaries only. In served mode, clicking Apply on the dashboard routes through `/prep/<id>`, which runs `prep_one` and shows the materials before linking to the posting. Entry point: `prep.py`.
 
-**Tracking** — Logging applications and generating weekly reviews. Produces `Application` records. Entry point: `review.py`.
+**Tracking** — Recording where each `Job` stands. A single `status` column on the job row is the state machine; the dashboard's "✓ Applied" button advances it and the Recent Applications panel reports it. No separate entry point.
 
-**Dashboard** — Read-only HTML report aggregating `Job` and `Application` data. Interface: `render() -> str` (serve.py serves it live, never writing to disk); `main()` writes `dashboard.html` for the CLI/refresh.bat path only, so the file may be stale while the server runs. Entry point: `dashboard.py`. The serve-mode route contract (`PREP_ROUTE`, `APPLIED_ROUTE`) is defined once in `dashboard.py`; both the emitted JS and `serve.py`'s routing import it.
+**Dashboard** — Serves the report and owns the write endpoint. Interface: `render() -> str` builds the page from the store; `serve()` runs it on port 8765 and renders fresh per request, so there is no `dashboard.html` artifact to go stale. Routes (`PREP_ROUTE`, `APPLIED_ROUTE`) and the `Handler` that serves them live in the same module as the JS that calls them. Entry point: `dashboard.py`.
 
 ## Core entities
 
