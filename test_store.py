@@ -1,4 +1,5 @@
-"""Checks on the persistence seam: round-trip, mark_applied, upsert, week cutoff.
+"""Checks on the persistence seam: round-trip, mark_applied, upsert, week cutoff,
+plus sanitize_html (moved here from discover so prep need not import feedparser).
 
 Run: python test_store.py
 """
@@ -55,5 +56,10 @@ rows = [
 ]
 assert store.this_week(rows, "d") == [rows[0]]
 assert store.parse_date("garbage", store.DATE_FMT) == datetime.min.replace(tzinfo=timezone.utc)
+
+# sanitize_html strips tags, decodes entities, collapses whitespace
+assert store.sanitize_html("<p>Data &amp;  Analyst</p>") == "Data & Analyst"
+assert store.sanitize_html("<br/>Remote\n\n  (EU)") == "Remote (EU)"
+assert store.sanitize_html("") == ""
 
 print("OK: test_store passed")

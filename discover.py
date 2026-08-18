@@ -17,7 +17,6 @@ import socket
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
-from html import unescape
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -26,6 +25,7 @@ import feedparser
 
 import store
 from config import FEEDS, MAX_PER_FEED, ROLE_KEYWORDS, SENIORITY_BLOCK
+from store import sanitize_html
 
 # ─── Configuration ───────────────────────────────────────────────────────
 
@@ -37,15 +37,6 @@ socket.setdefaulttimeout(8)
 SUMMARY_PATH = Path("logs/last_run_summary.txt")
 
 log = logging.getLogger("discover")
-
-_HTML_TAG_RE = re.compile(r"<[^>]+>")
-
-
-def sanitize_html(text: str) -> str:
-    """Strip HTML tags and decode entities."""
-    clean = _HTML_TAG_RE.sub(" ", text)
-    clean = unescape(clean)
-    return re.sub(r"\s+", " ", clean).strip()
 
 
 # ─── Logging ─────────────────────────────────────────────────────────────

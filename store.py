@@ -1,6 +1,8 @@
 import csv
+import re
 import sys
 from datetime import datetime, timedelta, timezone
+from html import unescape
 from pathlib import Path
 
 # ponytail: every script imports store — fix Windows cp1252 console once here
@@ -28,6 +30,19 @@ PREP_FIELDS = [
     "job_id", "title", "company", "link",
     "tailored_bullets", "missing_keywords", "cover_snippet",
 ]
+
+_HTML_TAG_RE = re.compile(r"<[^>]+>")
+
+
+def sanitize_html(text: str) -> str:
+    """Strip HTML tags and decode entities.
+
+    Lives here, not in discover: everything imports store, so prep can reuse
+    it without dragging in feedparser.
+    """
+    clean = _HTML_TAG_RE.sub(" ", text)
+    clean = unescape(clean)
+    return re.sub(r"\s+", " ", clean).strip()
 
 
 def _load(path: Path) -> list[dict]:
