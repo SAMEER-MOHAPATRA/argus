@@ -6,7 +6,7 @@
 
 ## Context
 
-The job_tracker codebase has three modules (`job_discovery.py`, `application_prep.py`, `weekly_review.py`) that each read/write CSV files directly. The CSV schema (`id`, `title`, `company`, etc.) is only defined once in `job_discovery.py`; the other modules trust the file headers implicitly. There is no single seam for data access, making tests dependent on real CSV files on disk and schema changes requiring edits in multiple files.
+The codebase has three modules (`job_discovery.py`, `application_prep.py`, `weekly_review.py`) that each read/write CSV files directly. The CSV schema (`id`, `title`, `company`, etc.) is only defined once in `job_discovery.py`; the other modules trust the file headers implicitly. There is no single seam for data access, making tests dependent on real CSV files on disk and schema changes requiring edits in multiple files.
 
 During the architecture review (2026-07-02) this was identified as Candidate 2 — the top recommendation, because fixing it pays back across every other module.
 

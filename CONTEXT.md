@@ -1,4 +1,4 @@
-# job_tracker — Domain Glossary
+# Argus — Domain Glossary
 
 ## Domain
 
