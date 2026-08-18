@@ -15,8 +15,8 @@ import logging
 import re
 import socket
 import sys
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
-from html import unescape
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -25,6 +25,7 @@ import feedparser
 
 import store
 from config import FEEDS, MAX_PER_FEED, ROLE_KEYWORDS, SENIORITY_BLOCK
+from store import sanitize_html
 
 # ─── Configuration ───────────────────────────────────────────────────────
 
@@ -36,15 +37,6 @@ socket.setdefaulttimeout(8)
 SUMMARY_PATH = Path("logs/last_run_summary.txt")
 
 log = logging.getLogger("discover")
-
-_HTML_TAG_RE = re.compile(r"<[^>]+>")
-
-
-def sanitize_html(text: str) -> str:
-    """Strip HTML tags and decode entities."""
-    clean = _HTML_TAG_RE.sub(" ", text)
-    clean = unescape(clean)
-    return re.sub(r"\s+", " ", clean).strip()
 
 
 # ─── Logging ─────────────────────────────────────────────────────────────
@@ -65,9 +57,8 @@ def setup_logging(verbose: bool = False) -> None:
 
 def load_seen_ids() -> set[str]:
     seen: set[str] = set()
-    for rows in (store.load_jobs(), store.load_applications()):
-        for row in rows:
-            seen.update(filter(None, [row.get("id"), row.get("job_id"), row.get("link")]))
+    for row in store.load_jobs():
+        seen.update(filter(None, [row.get("id"), row.get("link")]))
     log.info("Loaded %d seen IDs from store", len(seen))
     return seen
 
@@ -150,7 +141,8 @@ def process_feed(
 ) -> tuple[list[dict], str | None]:
     """Process a single RSS feed and return new job listings.
 
-    seen is mutated in-place for cross-feed dedup.
+    seen is read-only: feeds run in parallel, so cross-feed dedup happens
+    once after the join (see main).
     """
     cutoff = datetime.now(timezone.utc) - timedelta(days=days)
     results: list[dict] = []
@@ -191,17 +183,17 @@ def process_feed(
                 continue
 
             results.append({
-                "id":        job_id,
-                "title":     title,
-                "company":   company,
-                "location":  extract_location(entry, label),
-                "source":    label,
-                "link":      link,
-                "published": pub_date.strftime(store.UTC_FMT),
-                "applied":   "",
-                "summary":   description,
+                "id":          job_id,
+                "title":       title,
+                "company":     company,
+                "location":    extract_location(entry, label),
+                "source":      label,
+                "link":        link,
+                "published":   pub_date.strftime(store.UTC_FMT),
+                "status":      "new",
+                "status_date": "",
+                "summary":     description,
             })
-            seen.update([job_id, link])
 
         log.info(
             "Feed '%s': %d new jobs from %d entries",
@@ -272,11 +264,22 @@ def main(days: int, verbose: bool = False) -> None:
     all_jobs: list[dict] = []
     feed_stats: list[tuple] = []
 
-    # ponytail: sequential fetch; ThreadPoolExecutor if run time ever matters
-    for label, url in ((f["label"], f["url"]) for f in FEEDS):
-        jobs, error = process_feed(label, url, days, seen)
-        all_jobs.extend(jobs)
-        feed_stats.append((label, len(jobs), error))
+    # threads, not processes: feed work is socket wait. map keeps FEEDS order.
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        per_feed = list(pool.map(
+            lambda f: process_feed(f["label"], f["url"], days, seen), FEEDS,
+        ))
+
+    # dedup once, in FEEDS order — same result as the old sequential run
+    for f, (jobs, error) in zip(FEEDS, per_feed):
+        kept = []
+        for job in jobs:
+            if job["id"] in seen or job["link"] in seen:
+                continue
+            seen.update([job["id"], job["link"]])
+            kept.append(job)
+        all_jobs.extend(kept)
+        feed_stats.append((f["label"], len(kept), error))
 
     all_jobs.sort(key=lambda x: x["published"], reverse=True)
 

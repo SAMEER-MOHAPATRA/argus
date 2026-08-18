@@ -4,31 +4,32 @@ import store
 def print_tips(week: list[dict]) -> None:
     if len(week) < 3:
         print("\n💡 Tip: Aim for 3-5 quality applications per week.")
-    # hand-edited CSV rows can be short — treat missing fields as empty
-    if any(a.get("result") == "Applied" and "Follow up" not in (a.get("notes") or "") for a in week):
-        print('\n💡 Tip: Add a follow-up note (e.g., "Follow up in 7 days") to new entries.')
 
 
 def generate_review(apps: list[dict], week: list[dict]) -> str:
-    recent = sorted(apps, key=lambda x: x["date_applied"], reverse=True)[:5]
+    # hand-edited CSV rows can be short — treat missing fields as empty
+    recent = sorted(apps, key=lambda x: x.get("status_date", ""), reverse=True)[:5]
     lines = []
     lines.append("\n=== WEEKLY JOB-SEARCH REVIEW ===")
     lines.append(f"Total applications logged: {len(apps)}")
     lines.append(f"Applications this week:   {len(week)}")
     lines.append("\nRecent applications (most recent first):")
     for app in recent:
-        lines.append(f"  {app['date_applied']}: {app['title']} @ {app['company']} — {app['result']}")
+        lines.append(
+            f"  {app.get('status_date', '')}: {app['title']} @ {app['company']}"
+            f" — {store.get_status(app)}"
+        )
     return "\n".join(lines)
 
 
 def main() -> None:
-    apps = store.load_applications()
+    apps = [j for j in store.load_jobs() if store.get_status(j) != "new"]
 
     if not apps:
-        print("📂 No jobs_applied.csv yet — start tracking after your first application.")
+        print("📂 No applications yet — mark a job applied on the dashboard first.")
         return
 
-    week = store.this_week(apps, "date_applied")
+    week = store.this_week(apps, "status_date")
     print(generate_review(apps, week))
     print_tips(week)
 

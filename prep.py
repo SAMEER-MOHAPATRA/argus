@@ -4,7 +4,7 @@ from collections import Counter
 
 import store
 from config import BULLET_MAP, COVER_TEMPLATE, DEFAULTS, KEYWORD_PATTERN
-from discover import sanitize_html
+from store import sanitize_html
 
 _SCRIPT_RE = re.compile(r"<(script|style)[^>]*>.*?</\1>", re.IGNORECASE | re.DOTALL)
 
