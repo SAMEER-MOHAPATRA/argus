@@ -1,9 +1,9 @@
 {
   "include": ["."],
-  "exclude": ["__pycache__", "logs", ".git", ".github"],
+  "exclude": ["__pycache__", "logs", ".git", ".github", ".venv"],
   "typeCheckingMode": "standard",
   "reportMissingTypeStubs": false,
-  "pythonVersion": "3.13",
+  "pythonVersion": "3.14",
   "venvPath": ".",
-  "venv": null
+  "venv": ".venv"
 }

@@ -6,7 +6,7 @@ from pathlib import Path
 # ponytail: every script imports store — fix Windows cp1252 console once here
 for _stream in (sys.stdout, sys.stderr):
     if _stream and hasattr(_stream, "reconfigure"):
-        _stream.reconfigure(encoding="utf-8", errors="replace")
+        _stream.reconfigure(encoding="utf-8", errors="replace")  # pyright: ignore[reportAttributeAccessIssue]
 
 # ponytail: these module globals ARE the persistence seam — tests reassign
 # them to a tmp dir (see test_store.py); no protocol/adapters needed
