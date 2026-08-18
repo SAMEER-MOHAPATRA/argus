@@ -1,6 +1,8 @@
-# Job Tracker
+# Argus
 
 Python pipeline that discovers, scores, and tracks job applications end-to-end.
+
+Named for Argus Panoptes, the hundred-eyed watchman — it watches the feeds so you do not have to.
 
 ## What it does
 

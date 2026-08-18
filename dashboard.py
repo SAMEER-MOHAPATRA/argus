@@ -187,7 +187,7 @@ def _build_html(
             f"<td>{apply_cell}</td></tr>"
         )
     job_rows = "".join(job_rows)
-    body = f"""<h1>Job Tracker Dashboard</h1>
+    body = f"""<h1>Argus</h1>
 <p class="muted">Generated {datetime.now().strftime('%Y-%m-%d %H:%M')}</p>
 
 <div class="stats">
@@ -247,7 +247,7 @@ document.querySelectorAll('button.mark').forEach(b =>
   }})
 );
 </script>"""
-    return _page("Job Tracker Dashboard", "64rem", _DASH_CSS, body)
+    return _page("Argus", "64rem", _DASH_CSS, body)
 
 
 _PREP_CSS = """h1 { margin: 0; font-size: 1.4rem; }
