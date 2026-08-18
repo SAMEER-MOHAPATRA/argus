@@ -15,6 +15,7 @@ import logging
 import re
 import socket
 import sys
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from html import unescape
 from pathlib import Path
@@ -150,7 +151,8 @@ def process_feed(
 ) -> tuple[list[dict], str | None]:
     """Process a single RSS feed and return new job listings.
 
-    seen is mutated in-place for cross-feed dedup.
+    seen is read-only: feeds run in parallel, so cross-feed dedup happens
+    once after the join (see main).
     """
     cutoff = datetime.now(timezone.utc) - timedelta(days=days)
     results: list[dict] = []
@@ -201,7 +203,6 @@ def process_feed(
                 "applied":   "",
                 "summary":   description,
             })
-            seen.update([job_id, link])
 
         log.info(
             "Feed '%s': %d new jobs from %d entries",
@@ -272,11 +273,22 @@ def main(days: int, verbose: bool = False) -> None:
     all_jobs: list[dict] = []
     feed_stats: list[tuple] = []
 
-    # ponytail: sequential fetch; ThreadPoolExecutor if run time ever matters
-    for label, url in ((f["label"], f["url"]) for f in FEEDS):
-        jobs, error = process_feed(label, url, days, seen)
-        all_jobs.extend(jobs)
-        feed_stats.append((label, len(jobs), error))
+    # threads, not processes: feed work is socket wait. map keeps FEEDS order.
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        per_feed = list(pool.map(
+            lambda f: process_feed(f["label"], f["url"], days, seen), FEEDS,
+        ))
+
+    # dedup once, in FEEDS order — same result as the old sequential run
+    for f, (jobs, error) in zip(FEEDS, per_feed):
+        kept = []
+        for job in jobs:
+            if job["id"] in seen or job["link"] in seen:
+                continue
+            seen.update([job["id"], job["link"]])
+            kept.append(job)
+        all_jobs.extend(kept)
+        feed_stats.append((f["label"], len(kept), error))
 
     all_jobs.sort(key=lambda x: x["published"], reverse=True)
 
