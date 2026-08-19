@@ -4,8 +4,8 @@ How the engineering skills should consume this repo's domain documentation when 
 
 ## Before exploring, read these
 
-- **`CONTEXT.md`** at the repo root — the domain glossary (Discovery, Preparation, Tracking,
-  Dashboard; the `Job`/`Application`/`PrepResult` entities; module layout).
+- **`CONTEXT.md`** at the repo root — the domain glossary (Discovery, Tracking, Dashboard;
+  the `Job`/`Application` entities; module layout).
 - **`docs/adr/`** — read ADRs that touch the area you're about to work in (currently just
   `0001-persistence-seam.md`).
 
@@ -29,8 +29,8 @@ root, covering the whole codebase.
 ## Use the glossary's vocabulary
 
 When your output names a domain concept (in an issue title, a refactor proposal, a hypothesis, a
-test name), use the term as defined in `CONTEXT.md` — e.g. `Job`, `Application`, `PrepResult`,
-"Discovery", "Preparation", "Tracking", "Dashboard". Don't drift to synonyms the glossary doesn't use.
+test name), use the term as defined in `CONTEXT.md` — e.g. `Job`, `Application`,
+"Discovery", "Tracking", "Dashboard". Don't drift to synonyms the glossary doesn't use.
 
 If the concept you need isn't in the glossary yet, that's a signal — either you're inventing
 language the project doesn't use (reconsider) or there's a real gap (note it for `/domain-modeling`).

@@ -7,7 +7,7 @@ Run: python test_dashboard.py
 from datetime import datetime, timedelta, timezone
 
 import store
-from dashboard import APPLIED_ROUTE, PREP_ROUTE, _build_html, render, score_job
+from dashboard import APPLIED_ROUTE, _build_html, render, score_job
 
 JOBS = [
     {
@@ -42,7 +42,7 @@ assert "<script>alert(1)</script>" not in html
 assert "&lt;script&gt;" in html
 
 # pending job gets an Apply link + inline mark button; applied job gets neither
-assert f"href='{PREP_ROUTE}evil1'" in html  # prep route rendered server-side, not by JS
+assert "href='https://example.com/job/evil1'" in html  # Apply links straight to the posting
 assert "<button class='mark' data-id='evil1'>" in html
 assert "data-id='done1'" not in html
 assert "<span class='muted'>Applied</span>" in html

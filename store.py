@@ -10,10 +10,9 @@ for _stream in (sys.stdout, sys.stderr):
     if _stream and hasattr(_stream, "reconfigure"):
         _stream.reconfigure(encoding="utf-8", errors="replace")  # pyright: ignore[reportAttributeAccessIssue]
 
-# ponytail: these module globals ARE the persistence seam — tests reassign
-# them to a tmp dir (see test_store.py); no protocol/adapters needed
+# ponytail: this module global IS the persistence seam — tests reassign
+# it to a tmp dir (see test_store.py); no protocol/adapters needed
 CSV_PATH = Path("jobs_found.csv")
-PREP_PATH = Path("application_prep.csv")
 
 UTC_FMT = "%Y-%m-%d %H:%M UTC"
 DATE_FMT = "%Y-%m-%d"
@@ -25,11 +24,6 @@ JOBS_FIELDS = [
 
 # the whole application lifecycle — one column, no second file
 STATUSES = ("new", "applied", "interview", "rejected")
-
-PREP_FIELDS = [
-    "job_id", "title", "company", "link",
-    "tailored_bullets", "missing_keywords", "cover_snippet",
-]
 
 _HTML_TAG_RE = re.compile(r"<[^>]+>")
 
@@ -64,17 +58,17 @@ def get_status(job: dict) -> str:
     return (job.get("status") or "").strip().lower() or "new"
 
 
-def _save(path: Path, fields: list[str], rows: list[dict]) -> None:
+def _save(rows: list[dict]) -> None:
     # ponytail: rewrite the whole file so the header always matches the
     # schema — appending under a stale header silently misaligns columns
-    with open(path, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=fields, extrasaction="ignore")
+    with open(CSV_PATH, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=JOBS_FIELDS, extrasaction="ignore")
         writer.writeheader()
         writer.writerows(rows)
 
 
 def add_jobs(jobs: list[dict]) -> None:
-    _save(CSV_PATH, JOBS_FIELDS, load_jobs() + jobs)
+    _save(load_jobs() + jobs)
 
 
 def set_status(job_id: str, status: str) -> bool:
@@ -87,18 +81,8 @@ def set_status(job_id: str, status: str) -> bool:
         return False
     job["status"] = status
     job["status_date"] = datetime.now(timezone.utc).strftime(DATE_FMT)
-    _save(CSV_PATH, JOBS_FIELDS, jobs)
+    _save(jobs)
     return True
-
-
-def save_prep_results(rows: list[dict]) -> None:
-    _save(PREP_PATH, PREP_FIELDS, rows)
-
-
-def upsert_prep(row: dict) -> None:
-    """Replace (or append) the prep row for row['job_id']."""
-    rows = [r for r in _load(PREP_PATH) if r.get("job_id") != row["job_id"]]
-    _save(PREP_PATH, PREP_FIELDS, rows + [row])
 
 
 def this_week(rows: list[dict], key: str, fmt: str = DATE_FMT, days: int = 7) -> list[dict]:

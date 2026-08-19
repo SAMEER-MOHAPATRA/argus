@@ -1,5 +1,3 @@
-import re
-import textwrap
 import tomllib
 from pathlib import Path
 
@@ -14,15 +12,3 @@ ROLE_KEYWORDS: list[str] = _raw["discovery"]["role_keywords"]
 SENIORITY_BLOCK: list[str] = _raw["discovery"]["seniority_block"]
 FEEDS: list[dict[str, str]] = _raw["discovery"]["feeds"]
 MAX_PER_FEED: int = _raw["discovery"].get("max_per_feed", 25)
-
-DEFAULTS: list[str] = _raw["preparation"]["defaults"]
-BULLET_MAP: dict[str, str] = dict(_raw["preparation"]["bullets"])
-
-COVER_TEMPLATE: str = textwrap.dedent(_raw["preparation"]["cover"]["template"])
-
-# Generate keyword regex from bullet keys to prevent drift
-_keywords = sorted(BULLET_MAP.keys(), key=len, reverse=True)
-KEYWORD_PATTERN = re.compile(
-    r"\b(" + "|".join(re.escape(kw) for kw in _keywords) + r")\b",
-    re.IGNORECASE,
-)

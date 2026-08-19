@@ -4,8 +4,6 @@ __pycache__/
 .venv/
 .pytest_cache/
 .tokensave/
-application_prep.csv
-master_resume.txt
 jobs_found.csv
 jobs_applied.csv
 *.env
