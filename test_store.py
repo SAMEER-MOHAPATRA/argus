@@ -1,5 +1,4 @@
-"""Checks on the persistence seam: round-trip, set_status, week cutoff,
-plus sanitize_html.
+"""Checks on the persistence seam: round-trip, set_status, week cutoff.
 
 Run: python test_store.py
 """
@@ -49,10 +48,5 @@ rows = [
 ]
 assert store.this_week(rows, "d") == [rows[0]]
 assert store.parse_date("garbage", store.DATE_FMT) == datetime.min.replace(tzinfo=timezone.utc)
-
-# sanitize_html strips tags, decodes entities, collapses whitespace
-assert store.sanitize_html("<p>Data &amp;  Analyst</p>") == "Data & Analyst"
-assert store.sanitize_html("<br/>Remote\n\n  (EU)") == "Remote (EU)"
-assert store.sanitize_html("") == ""
 
 print("OK: test_store passed")

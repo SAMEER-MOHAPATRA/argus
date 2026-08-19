@@ -2,7 +2,7 @@
 
 ## Domain
 
-**Discovery** — RSS feed ingestion, relevance filtering, and deduplication of job listings. Produces `Job` records. Entry point: `discover.py` (`--check` for feed health).
+**Discovery** — RSS feed ingestion, relevance filtering, and deduplication of job listings. Produces `Job` records. All feed-derived text is sanitized to plain text before storage (`sanitize_html`). Entry point: `discover.py` (`--check` for feed health).
 
 **Tracking** — Recording where each `Job` stands. A single `status` column on the job row is the state machine; the dashboard's "✓ Applied" button advances it and the Recent Applications panel reports it. No separate entry point.
 
@@ -15,5 +15,5 @@
 
 ## Architecture
 
-- **store.py** — plain module functions (`load_jobs`, `add_jobs`, `get_status`, `set_status`, `this_week`) that own the CSV schemas and date formats. All feed-derived text is sanitized to plain text before storage; `dashboard.py` additionally HTML-escapes at render.
+- **store.py** — plain module functions (`load_jobs`, `add_jobs`, `get_status`, `set_status`, `this_week`) that own the CSV schema and date formats. `dashboard.py` HTML-escapes at render.
 - **config.toml + config.py** — All configuration (feeds, role keywords, seniority blocklist) in `config.toml`. `config.py` loads it once at import and exports typed constants.
