@@ -9,7 +9,7 @@ for _stream in (sys.stdout, sys.stderr):
         _stream.reconfigure(encoding="utf-8", errors="replace")  # pyright: ignore[reportAttributeAccessIssue]
 
 # ponytail: this module global IS the persistence seam — tests reassign
-# it to a tmp dir (see test_store.py); no protocol/adapters needed
+# it to a tmp dir (see tests.py); no protocol/adapters needed
 CSV_PATH = Path("jobs_found.csv")
 
 UTC_FMT = "%Y-%m-%d %H:%M UTC"

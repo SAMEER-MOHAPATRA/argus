@@ -48,7 +48,7 @@ As implemented, `store.py` is plain module functions, not a `JobStore` protocol 
 `CsvJobStore`/`InMemoryJobStore` adapters. One adapter means a hypothetical seam — nothing
 varied, so the protocol was skipped. The seam is the module-global paths
 (`CSV_PATH`, `APPLIED_PATH`, `PREP_PATH`), which are resolved at call time: tests
-(`test_store.py`) reassign them to a tmp dir, delivering this ADR's testability goal
+(`tests.py`) reassign them to a tmp dir, delivering this ADR's testability goal
 (no disk I/O in the real cwd, deterministic) without the adapter machinery. A future
 storage switch remains a `store.py`-local change.
 
