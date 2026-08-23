@@ -31,13 +31,11 @@ seniority_block = [
     "vice president",
 ]
 
-[[discovery.feeds]]
-label = "RemoteOK | Data"
-url = "https://remoteok.com/remote-data-jobs.rss"
-
-[[discovery.feeds]]
-label = "RemoteOK | Analyst"
-url = "https://remoteok.com/remote-analyst-jobs.rss"
+# RemoteOK RSS was removed on their side: every .rss path answers HTTP 410 Gone,
+# including the general remote-jobs.rss. feedparser reported this as a "mismatched
+# tag" because it was parsing the HTML error page. Their JSON API
+# (https://remoteok.com/api) still works, but feedparser only reads RSS, so
+# using it needs code. Do not re-add these URLs.
 
 [[discovery.feeds]]
 label = "WWR | Programming"
@@ -77,71 +75,17 @@ url = "https://weworkremotely.com/categories/remote-management-and-finance-jobs.
 label = "Remotive | Remote"
 url = "https://remotive.io/remote-jobs/feed"
 
-[preparation]
-# the cover template has exactly as many bullet slots as there are defaults
-defaults = [
-    "Strong foundation in data analysis and reporting",
-    "Proven ability to build dashboards and drive process improvements",
-    "Skilled in stakeholder communication and documentation",
-]
+# Naukri has no public RSS (/rss-feed-jobs is a keyword search page, and the
+# site 403s non-browser user agents). Google News indexes Naukri job pages,
+# so scope a news search to the site — same trick as the LinkedIn feeds above.
+[[discovery.feeds]]
+label = "Naukri | DA India"
+url = "https://news.google.com/rss/search?q=site%3Anaukri.com+%22data+analyst%22&hl=en-IN&gl=IN&ceid=IN:en"
 
-[preparation.bullets]
-sql = "Applied SQL querying to validate 1,000+ logistics records monthly, improving accuracy by 10-12%"
-"power bi" = "Developed interactive Power BI dashboards tracking KPIs (rake turnaround, loading performance) for logistics leadership"
-excel = "Built advanced Excel solutions using Pivot Tables and formulas to monitor 8+ daily KPIs, cutting manual effort ~50%"
-"pivot table" = "Leveraged Excel Pivot Tables to create dynamic logistics dashboards enabling 15-20% faster bottleneck identification"
-dashboard = "Designed and maintained management dashboards for freight movement, supporting data-driven decisions"
-kpi = "Monitored and reported on 8+ daily logistics KPIs including rake turnaround time and loading performance"
-"data validation" = "Implemented rigorous validation processes for rake/freight entries, maintaining high data accuracy"
-"data analysis" = "Performed in-depth data analysis on logistics datasets to identify trends and optimize operational efficiency"
-python = "Utilized foundational Python for data cleaning and analysis in logistics reporting workflows"
-pandas = "Leveraged pandas for data cleaning and transformation of logistics records"
-numpy = "Applied numpy for numerical analysis in logistics data reporting"
-"power query" = "Applied Power Query for efficient data transformation in BI reporting"
-dax = "Utilized DAX for calculated measures in logistics performance dashboards"
-agile = "Collaborated in cross-functional teams using Agile methodologies for process-improvement initiatives"
-jira = "Tracked workflow improvements and testing cycles using project-management tools"
-confluence = "Authored and maintained process documentation in collaborative knowledge bases"
-git = "Managed version control for documentation and analysis scripts using Git/GitHub"
-github = "Used GitHub to share analytics scripts and collaborate on process improvements"
-sop = "Authored comprehensive SOPs for railway logistics systems, reducing onboarding time ~20%"
-documentation = "Created user manuals, process flowcharts, and test scenarios that cut new-user ramp-up by ~20%"
-"process improvement" = "Led workflow-standardization initiatives that boosted reporting efficiency by 15-20%"
-stakeholder = "Served as primary liaison between technical teams and business users, ensuring rapid issue resolution"
+[[discovery.feeds]]
+label = "Naukri | BA India"
+url = "https://news.google.com/rss/search?q=site%3Anaukri.com+%22business+analyst%22&hl=en-IN&gl=IN&ceid=IN:en"
 
-# title-level keywords — RSS summaries are often near-empty, so titles must carry the match
-analyst = "Analyzed 1,000+ monthly logistics records at JSPL, improving data accuracy 10-12% and cutting decision latency from 3 hours to 30 minutes"
-analytics = "Built 8 KPI dashboards (star-schema, DAX) for rail logistics analytics, reducing manual reporting by 50%"
-data = "Engineered Python/Pandas ETL pipeline validating 8+ daily operational records with 95% deduplication accuracy"
-engineer = "Engineered end-to-end Python/Pandas ETL pipeline, eliminating 60% of manual validation work"
-developer = "Automated Excel reporting with VBA, cutting cycle time from 20 to 2 minutes (180-240 hours saved annually)"
-scientist = "Applied Python (Pandas, NumPy) for data cleaning, deduplication, and statistical analysis of logistics records"
-support = "SPOC between operations and software vendor for a 200-user system: reproduced bugs, ran live-call validation, resolved 30+ issues"
-testing = "Executed 25 UAT test cases, surfacing 12 critical inconsistencies before production with 99% sign-off"
-etl = "Engineered Python/Pandas ETL pipeline validating daily operational records at 95% accuracy"
-
-[preparation.cover]
-template = """
-Dear Hiring Manager,
-
-As a recent MCA graduate promoted to On-Job Trainee at JSPL based on performance in
-railway-logistics data analysis, I was excited to see the {title} position at {company}.
-My experience turning operational logistics data into actionable insights aligns well
-with your needs:
-
-- {b0}
-- {b1}
-- {b2}
-
-I am particularly drawn to this role because [ADD ONE SPECIFIC DETAIL FROM THE JD].
-
-My resume highlights how I:
-• Improved data accuracy by 10-12% through systematic validation of 1,000+ monthly records
-• Reduced manual analysis effort by ~50% via Excel/BI dashboard development
-• Increased reporting efficiency 15-20% through cross-functional process standardization
-
-I would welcome the chance to discuss how my analytical mindset and logistics expertise
-can contribute to {company}'s data-driven initiatives.
-
-Sincerely,
-[Your Name]"""
+[[discovery.feeds]]
+label = "Naukri | Analytics"
+url = "https://news.google.com/rss/search?q=site%3Anaukri.com+%22analytics%22&hl=en-IN&gl=IN&ceid=IN:en"

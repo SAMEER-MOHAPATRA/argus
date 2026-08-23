@@ -17,6 +17,7 @@ import socket
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
+from html import unescape
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -25,7 +26,6 @@ import feedparser
 
 import store
 from config import FEEDS, MAX_PER_FEED, ROLE_KEYWORDS, SENIORITY_BLOCK
-from store import sanitize_html
 
 # ─── Configuration ───────────────────────────────────────────────────────
 
@@ -134,6 +134,16 @@ def extract_location(entry, source_label: str) -> str:
 
 
 # ─── Feed Processing ────────────────────────────────────────────────────
+
+
+_HTML_TAG_RE = re.compile(r"<[^>]+>")
+
+
+def sanitize_html(text: str) -> str:
+    """Strip HTML tags and decode entities. Feed text is not trusted."""
+    clean = _HTML_TAG_RE.sub(" ", text)
+    clean = unescape(clean)
+    return re.sub(r"\s+", " ", clean).strip()
 
 
 def process_feed(

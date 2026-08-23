@@ -14,15 +14,13 @@ from collections import Counter
 from datetime import datetime, timezone
 from html import escape
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from urllib.parse import quote, unquote
+from urllib.parse import unquote
 
-import prep
 import store
 
 PORT = 8765
 
-# routes are shared by the emitted JS and the Handler below — rename in one place
-PREP_ROUTE = "/prep/"
+# the route is shared by the emitted JS and the Handler below — rename in one place
 APPLIED_ROUTE = "/applied/"
 
 # coffee palette: espresso text, mocha accent, caramel highlight, latte muted, cream bg
@@ -78,7 +76,7 @@ def score_job(job: dict) -> int:
 
 
 def _page(title: str, max_width: str, extra_css: str, body: str) -> str:
-    """Shared page shell: palette, head, base CSS. Both renderers go through here."""
+    """Page shell: palette, head, base CSS."""
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -171,9 +169,8 @@ def _build_html(
         if applied:
             apply_cell = f"<span class='muted'>{escape(store.get_status(j).title())}</span>"
         elif j.get("link"):
-            # served over http only, so the prep route is rendered here, not patched by JS
             apply_cell = (
-                f"<a class='apply' href='{PREP_ROUTE}{quote(job_id)}' target='_blank'>Apply</a> "
+                f"<a class='apply' href='{escape(j.get('link', ''))}' target='_blank'>Apply</a> "
                 f"<button class='mark' data-id='{escape(job_id)}'>&#10003; Applied</button>"
             )
         else:
@@ -250,50 +247,6 @@ document.querySelectorAll('button.mark').forEach(b =>
     return _page("Argus", "64rem", _DASH_CSS, body)
 
 
-_PREP_CSS = """h1 { margin: 0; font-size: 1.4rem; }
-h2 { font-size: 1rem; margin: 1.5rem 0 .5rem; }
-.card { margin-top: .5rem; }
-pre { white-space: pre-wrap; font: inherit; margin: 0; }
-button.copy { float: right; border: 1px solid var(--line); background: var(--cream);
-              color: var(--mocha); border-radius: .5rem; padding: .15rem .6rem; cursor: pointer; }
-a.go { display: inline-block; margin-top: 1.5rem; padding: .5rem 1.1rem; border-radius: .5rem;
-       background: var(--mocha); color: var(--cream); text-decoration: none; font-weight: 600; }
-a.go:hover { background: var(--caramel); }"""
-
-
-def render_prep(job: dict, prep: dict) -> str:
-    """Tailored-materials page shown when Apply is clicked (served mode only)."""
-    bullets = "".join(
-        f"<li>{escape(b.strip())}</li>"
-        for b in prep.get("tailored_bullets", "").split(" | ") if b.strip()
-    )
-    missing = escape(prep.get("missing_keywords", "")) or "none — resume covers the JD keywords"
-    body = f"""<h1>{escape(job['title'])}</h1>
-<p class="muted">{escape(job.get('company', ''))} · {escape(job.get('location', ''))} · via {escape(job.get('source', ''))}</p>
-
-<h2>Tailored bullets</h2>
-<div class="card"><button class="copy">copy</button><ul id="bullets" style="margin:0;padding-left:1.2rem">{bullets}</ul></div>
-
-<h2>Missing keywords <span class="muted">(in the JD, not in your resume)</span></h2>
-<div class="card">{missing}</div>
-
-<h2>Cover snippet</h2>
-<div class="card"><button class="copy">copy</button><pre>{escape(prep.get('cover_snippet', ''))}</pre></div>
-
-<a class="go" href="{escape(job.get('link', ''))}" target="_blank">Go to job posting →</a>
-<p class="muted">Saved to application_prep.csv. Paste the bullets + cover into your AI of choice to polish.</p>
-
-<script>
-document.querySelectorAll('button.copy').forEach(b =>
-  b.addEventListener('click', () => {{
-    navigator.clipboard.writeText(b.parentElement.innerText.replace(/^copy\\n?/, ''));
-    b.textContent = 'copied'; setTimeout(() => b.textContent = 'copy', 1200);
-  }})
-);
-</script>"""
-    return _page(f"Prep — {escape(job['title'])}", "44rem", _PREP_CSS, body)
-
-
 def render() -> str:
     """Load the store and return the dashboard as an HTML string."""
     all_jobs = store.load_jobs()
@@ -331,15 +284,7 @@ def render() -> str:
 
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
-        if self.path.startswith(PREP_ROUTE):
-            job_id = unquote(self.path.rsplit("/", 1)[-1])
-            job = next((j for j in store.load_jobs() if j.get("id") == job_id), None)
-            if job is None:
-                self.send_error(404)
-                return
-            # fetches the live JD, tailors bullets/cover, upserts application_prep.csv
-            body = render_prep(job, prep.prep_one(job)).encode("utf-8")
-        elif self.path in ("/", "/dashboard.html"):
+        if self.path in ("/", "/dashboard.html"):
             body = render().encode("utf-8")
         else:
             self.send_error(404)

@@ -1,6 +1,6 @@
 # ADR-0001: Introduce a persistence seam via store.py
 
-**Status:** Accepted (amended 2026-07-03 — see below)  
+**Status:** Accepted (amended 2026-07-03 and 2026-08-19 — see below)  
 **Date:** 2026-07-02  
 **Deciders:** User + agent
 
@@ -48,6 +48,18 @@ As implemented, `store.py` is plain module functions, not a `JobStore` protocol 
 `CsvJobStore`/`InMemoryJobStore` adapters. One adapter means a hypothetical seam — nothing
 varied, so the protocol was skipped. The seam is the module-global paths
 (`CSV_PATH`, `APPLIED_PATH`, `PREP_PATH`), which are resolved at call time: tests
-(`test_store.py`) reassign them to a tmp dir, delivering this ADR's testability goal
+(`tests.py`) reassign them to a tmp dir, delivering this ADR's testability goal
 (no disk I/O in the real cwd, deterministic) without the adapter machinery. A future
 storage switch remains a `store.py`-local change.
+
+## Amendment (2026-08-19)
+
+Preparation was deleted (architecture review, 2026-08-18). The decision stands. Two facts change.
+
+1. `save_prep_results(rows)` and `upsert_prep(row)` leave the store interface, and `PREP_PATH`
+   leaves the seam. `CSV_PATH` is the only path global now. `_save` no longer takes a path or a
+   field list: one schema, one file.
+2. The `summary` field stays, but for a new reason. This ADR says `summary` carries the job
+   description "from Discovery through to Preparation". Preparation is gone. `summary` survives
+   because `score_job()` in `dashboard.py` reads it to award skill-keyword points. Do not delete
+   it as dead weight.
