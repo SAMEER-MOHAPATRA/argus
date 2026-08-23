@@ -31,13 +31,11 @@ seniority_block = [
     "vice president",
 ]
 
-[[discovery.feeds]]
-label = "RemoteOK | Data"
-url = "https://remoteok.com/remote-data-jobs.rss"
-
-[[discovery.feeds]]
-label = "RemoteOK | Analyst"
-url = "https://remoteok.com/remote-analyst-jobs.rss"
+# RemoteOK RSS was removed on their side: every .rss path answers HTTP 410 Gone,
+# including the general remote-jobs.rss. feedparser reported this as a "mismatched
+# tag" because it was parsing the HTML error page. Their JSON API
+# (https://remoteok.com/api) still works, but feedparser only reads RSS, so
+# using it needs code. Do not re-add these URLs.
 
 [[discovery.feeds]]
 label = "WWR | Programming"

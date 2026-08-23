@@ -50,15 +50,33 @@ it wants to be read this way.
 
 ```
 WWR | All                      |  88 entries | bozo=False | Grafana Labs: Associate Observability Architect
-Himalayas | Remote             | 100 entries | bozo=False | Principal Software Engineer, Financial Data Platform
+Himalayas | Remote             | 100 entries | bozo=False | US Tax Data Analyst
 Naukri | DA India              | 100 entries | bozo=False | Data Analyst - Gurugram,Bengaluru - Lenskart - 0 to 5 years
-RemoteOK | Data                |   0 entries | bozo=1    | N/A
 ```
 
 `bozo=1` means `feedparser` found malformed XML. `bozo=1` with entries above
 zero is acceptable — Himalayas has done this. `bozo=1` with **zero** entries
-means the feed is broken. Both RemoteOK feeds are in that state
-(`mismatched tag`).
+means the feed is broken.
+
+### A broken feed can lie about why it is broken
+
+The RemoteOK feeds used to report `bozo=1` with `mismatched tag`, which reads
+like malformed XML. It was not. The URLs answer **HTTP 410 Gone**:
+
+```
+<html><head><title>410 Gone</title></head>
+```
+
+`feedparser` was parsing an HTML error page as XML. `410` is deliberate: the
+server states the resource is permanently removed. Every RemoteOK `.rss` path
+answers the same way, including the general `remote-jobs.rss`, so no URL change
+recovers it. The feeds were removed from `config.toml`.
+
+Lesson: when a feed shows `bozo=1` and zero entries, fetch the URL yourself and
+read the status code. Trust the HTTP status over the parser error.
+
+RemoteOK's JSON API (`https://remoteok.com/api`) does still work and returns
+about 400 KB. Using it needs code, because `feedparser` reads RSS only.
 
 ---
 
