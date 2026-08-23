@@ -76,3 +76,18 @@ url = "https://weworkremotely.com/categories/remote-management-and-finance-jobs.
 [[discovery.feeds]]
 label = "Remotive | Remote"
 url = "https://remotive.io/remote-jobs/feed"
+
+# Naukri has no public RSS (/rss-feed-jobs is a keyword search page, and the
+# site 403s non-browser user agents). Google News indexes Naukri job pages,
+# so scope a news search to the site — same trick as the LinkedIn feeds above.
+[[discovery.feeds]]
+label = "Naukri | DA India"
+url = "https://news.google.com/rss/search?q=site%3Anaukri.com+%22data+analyst%22&hl=en-IN&gl=IN&ceid=IN:en"
+
+[[discovery.feeds]]
+label = "Naukri | BA India"
+url = "https://news.google.com/rss/search?q=site%3Anaukri.com+%22business+analyst%22&hl=en-IN&gl=IN&ceid=IN:en"
+
+[[discovery.feeds]]
+label = "Naukri | Analytics"
+url = "https://news.google.com/rss/search?q=site%3Anaukri.com+%22analytics%22&hl=en-IN&gl=IN&ceid=IN:en"
