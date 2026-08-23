@@ -1,0 +1,1308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Argus — Complete Call Flow &amp; Architecture Documentation</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<style>
+:root {
+  --bg: #0f172a; --surface: #1e293b; --border: #334155;
+  --text: #e2e8f0; --muted: #94a3b8; --accent: #38bdf8;
+  --warn: #fbbf24; --err: #f87171; --ok: #34d399;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+.container { max-width: 1200px; margin: 0 auto; padding: 40px 24px; }
+h1 { font-size: 2.4rem; margin-bottom: 8px; background: linear-gradient(135deg, var(--accent), #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+h2 { font-size: 1.7rem; margin: 48px 0 16px; padding-bottom: 8px; border-bottom: 2px solid var(--accent); }
+h3 { font-size: 1.25rem; margin: 32px 0 12px; color: var(--accent); }
+h4 { font-size: 1.05rem; margin: 20px 0 8px; color: var(--warn); }
+p { margin: 8px 0; color: var(--muted); }
+.subtitle { color: var(--muted); font-size: 1.1rem; margin-bottom: 32px; }
+.mermaid { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin: 20px 0; overflow-x: auto; position: relative; }
+.mermaid.is-enhanced { padding: 0; overflow: hidden; min-height: 260px; }
+.mermaid-viewport { padding: 54px 24px 24px; overflow: hidden; cursor: grab; touch-action: none; min-height: 260px; }
+.mermaid-viewport.is-dragging { cursor: grabbing; }
+.mermaid-viewport svg { max-width: none !important; height: auto; transform-origin: 0 0; transition: transform 120ms ease; }
+.mermaid-toolbar { position: absolute; top: 10px; right: 10px; z-index: 3; display: flex; align-items: center; gap: 6px; padding: 6px; background: rgba(15,23,42,0.92); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.28); }
+.mermaid-toolbar button, .mermaid-toolbar .zoom-level { height: 28px; min-width: 32px; border: 1px solid var(--border); border-radius: 6px; background: #1e293b; color: var(--text); font: 600 0.78rem system-ui, sans-serif; display: inline-flex; align-items: center; justify-content: center; }
+.mermaid-toolbar button { cursor: pointer; }
+.mermaid-toolbar button:hover { border-color: var(--accent); color: var(--accent); }
+.mermaid-toolbar .zoom-level { min-width: 52px; color: var(--muted); background: transparent; }
+.call-table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.92rem; }
+.call-table th { background: #1a2744; color: var(--accent); text-align: left; padding: 10px 14px; border: 1px solid var(--border); }
+.call-table td { padding: 8px 14px; border: 1px solid var(--border); vertical-align: top; }
+.call-table tr:nth-child(even) { background: rgba(255,255,255,0.02); }
+.tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: 600; }
+.tag-async { background: #7c3aed33; color: #a78bfa; }
+.tag-class { background: #05966933; color: var(--ok); }
+.tag-func { background: #2563eb33; color: var(--accent); }
+.tag-cmd { background: #d9770633; color: var(--warn); }
+.tag-endpoint { background: #dc262633; color: var(--err); }
+.tag-hook { background: #db277733; color: #f472b6; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin: 16px 0; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; margin: 16px 0; }
+.arrow-chain { font-family: 'Fira Code', monospace; font-size: 0.85rem; color: var(--accent); padding: 10px; background: rgba(56,189,248,0.06); border-radius: 6px; }
+code { font-family: 'Fira Code', 'Cascadia Code', monospace; background: rgba(255,255,255,0.06); padding: 1px 6px; border-radius: 3px; font-size: 0.88em; }
+ul, ol { margin: 8px 0 8px 24px; color: var(--muted); }
+li { margin: 4px 0; }
+a { color: var(--accent); }
+hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+.nav { position: sticky; top: 0; background: var(--bg); z-index: 10; padding: 12px 0; border-bottom: 1px solid var(--border); display: flex; gap: 20px; flex-wrap: wrap; font-size: 0.9rem; }
+.nav a { text-decoration: none; }
+.nav a:hover { text-decoration: underline; }
+@media (max-width: 768px) { .container { padding: 16px; } h1 { font-size: 1.8rem; } }
+
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>Argus — Complete Call Flow &amp; Architecture Documentation</h1>
+<p class="subtitle">Generated from graphify knowledge graph: 60 nodes, 107 edges, 8 communities. Commit: 02b163f</p>
+
+<div class="nav">
+    <a href="#overview">Architecture Overview</a>
+    <a href="#extract-pipeline">Extraction Pipeline</a>
+    <a href="#ingest-cache-update">Ingestion &amp; Updates</a>
+    <a href="#serve-api">Serving API</a>
+    <a href="#tests-fixtures">Tests &amp; Fixtures</a>
+    <a href="#store-py">store.py</a>
+    <a href="#discover-py">discover.py</a>
+    <a href="#parse-published">parse_published</a>
+</div>
+
+<!-- ====== Architecture Overview ====== -->
+<h2 id="overview">1. Architecture Overview</h2>
+
+<div class="mermaid">
+
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    EXTRACT_PIPELINE_5F350230("Extraction Pipeline<br/><small>2 nodes</small>")
+    class EXTRACT_PIPELINE_5F350230 module;
+    INGEST_CACHE_UPDATE_FF457338("Ingestion &amp; Updates<br/><small>11 nodes</small>")
+    class INGEST_CACHE_UPDATE_FF457338 module;
+    SERVE_API_35EC8E86("Serving API<br/><small>12 nodes</small>")
+    class SERVE_API_35EC8E86 module;
+    TESTS_FIXTURES_B84B1DCC("Tests &amp; Fixtures<br/><small>11 nodes</small>")
+    class TESTS_FIXTURES_B84B1DCC module;
+    STORE_PY_B5499B00("store.py<br/><small>13 nodes</small>")
+    class STORE_PY_B5499B00 module;
+    DISCOVER_PY_8194DA6E("discover.py<br/><small>8 nodes</small>")
+    class DISCOVER_PY_8194DA6E module;
+    PARSE_PUBLISHED_ECA93EA7("parse_published<br/><small>3 nodes</small>")
+    class PARSE_PUBLISHED_ECA93EA7 module;
+    TESTS_FIXTURES_B84B1DCC -->|calls x9| STORE_PY_B5499B00
+    DISCOVER_PY_8194DA6E -->|contains x6| INGEST_CACHE_UPDATE_FF457338
+    SERVE_API_35EC8E86 -->|contains x4| TESTS_FIXTURES_B84B1DCC
+    DISCOVER_PY_8194DA6E -->|calls x3| STORE_PY_B5499B00
+    TESTS_FIXTURES_B84B1DCC -->|calls x2| SERVE_API_35EC8E86
+    DISCOVER_PY_8194DA6E -->|imports x2| PARSE_PUBLISHED_ECA93EA7
+    TESTS_FIXTURES_B84B1DCC -->|calls| INGEST_CACHE_UPDATE_FF457338
+    INGEST_CACHE_UPDATE_FF457338 -->|calls| PARSE_PUBLISHED_ECA93EA7
+    INGEST_CACHE_UPDATE_FF457338 -->|calls| EXTRACT_PIPELINE_5F350230
+    STORE_PY_B5499B00 -->|contains| TESTS_FIXTURES_B84B1DCC
+    SERVE_API_35EC8E86 -->|imports| STORE_PY_B5499B00
+    TESTS_FIXTURES_B84B1DCC -->|imports| DISCOVER_PY_8194DA6E
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<div class="grid">
+  <div class="card">
+    <h4>Architecture Layers</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>Layer</th><th>Nodes</th><th>Communities</th></tr>
+      <tr><td>Extraction Pipeline</td><td>2</td><td><code>7</code></td></tr><tr><td>Ingestion &amp; Updates</td><td>11</td><td><code>4, 5</code></td></tr><tr><td>Serving API</td><td>12</td><td><code>1</code></td></tr><tr><td>Tests &amp; Fixtures</td><td>11</td><td><code>2</code></td></tr><tr><td>store.py</td><td>13</td><td><code>0</code></td></tr><tr><td>discover.py</td><td>8</td><td><code>3</code></td></tr><tr><td>parse_published</td><td>3</td><td><code>6</code></td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Core Flow</h4>
+    <div class="arrow-chain">discover.py -&gt; Ingestion &amp; Updates -&gt; parse_published -&gt; Extraction Pipeline -&gt; Serving API -&gt; Tests &amp; Fixtures -&gt; store.py</div>
+  </div>
+</div>
+<div class="grid">
+  <div class="card">
+    <h4>Graph Report Highlights</h4>
+    <ul>
+      <li>60 nodes · 107 edges · 8 communities (7 shown, 1 thin omitted)</li>
+      <li>Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS</li>
+      <li>Token cost: 0 input · 0 output</li>
+      <li>1. `test_suite()` - 13 edges</li>
+      <li>2. `render()` - 10 edges</li>
+      <li>3. `process_feed()` - 8 edges</li>
+    </ul>
+  </div>
+</div>
+<hr>
+<!-- ====== 2. Extraction Pipeline ====== -->
+<h2 id="extract-pipeline">2. Extraction Pipeline</h2>
+<p>Extraction Pipeline groups implementation around extract, location, discoverpy, rss, mostly in discover.py. This section covers 2 nodes and 1 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Extraction Pipeline (2 nodes, 1 edges)
+    discover_rationale_115_ad1b32ef("Extract location from an RSS entry with...<br/><small>discover.py</small>")
+    discover_extract_location_aa35688a("extract_location()<br/><small>discover.py</small>")
+    discover_rationale_115_ad1b32ef -->|explains| discover_extract_location_aa35688a
+    class discover_rationale_115_ad1b32ef concept;
+    class discover_extract_location_aa35688a function;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>extract_location()</code><br><small style="color:var(--muted)">discover.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>process_feed()</code><br><small style="color:var(--muted)">discover.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>extract_location() node in discover.py.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>Extract location from an RSS entry with source-aware fallbacks.</code><br><small style="color:var(--muted)">discover.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Extract location from an RSS entry with source-aware fallbacks..</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>discover.py</code></td><td>2 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: explains x1. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 3. Ingestion & Updates ====== -->
+<h2 id="ingest-cache-update">3. Ingestion &amp; Updates</h2>
+<p>Ingestion &amp; Updates groups implementation around discoverpy, feed, job, process, mostly in discover.py. This section covers 11 nodes and 10 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Ingestion &amp; Updates (11 nodes, 10 edges)
+    subgraph ingest_cache_update_discover_py_a454dc71["discover.py"]
+        discover_process_feed_187ab826("process_feed()<br/><small>discover.py</small>")
+        discover_check_feeds_6132b6f3("check_feeds()<br/><small>discover.py</small>")
+        discover_fetch_feed_b27a2b8e("fetch_feed()<br/><small>discover.py</small>")
+        discover_extract_job_id_3d69223d("extract_job_id()<br/><small>discover.py</small>")
+        discover_sanitize_html_4232a87d("sanitize_html()<br/><small>discover.py</small>")
+        discover_rationale_70_9fb4a0ec("Fetch and parse an RSS feed. No retries...<br/><small>discover.py</small>")
+        discover_rationale_101_4a17287e("Generate a stable unique ID from a job...<br/><small>discover.py</small>")
+        discover_rationale_263_9c4500a3("Print feed health without touching the...<br/><small>discover.py</small>")
+        discover_rationale_152_833814f8("Process a single RSS feed and return ne...<br/><small>discover.py</small>")
+        discover_rationale_143_277fdf11("Strip HTML tags and decode entities. Fe...<br/><small>discover.py</small>")
+    end
+    feedparserdict_40f74ef5("FeedParserDict")
+    discover_process_feed_187ab826 -->|calls| discover_fetch_feed_b27a2b8e
+    discover_process_feed_187ab826 -->|calls| discover_extract_job_id_3d69223d
+    discover_process_feed_187ab826 -->|calls| discover_sanitize_html_4232a87d
+    discover_check_feeds_6132b6f3 -->|calls| discover_fetch_feed_b27a2b8e
+    class discover_process_feed_187ab826 function;
+    class discover_check_feeds_6132b6f3 function;
+    class discover_fetch_feed_b27a2b8e function;
+    class discover_extract_job_id_3d69223d function;
+    class discover_sanitize_html_4232a87d function;
+    class discover_rationale_70_9fb4a0ec concept;
+    class discover_rationale_101_4a17287e concept;
+    class discover_rationale_263_9c4500a3 concept;
+    class discover_rationale_152_833814f8 concept;
+    class discover_rationale_143_277fdf11 concept;
+    class feedparserdict_40f74ef5 klass;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>extract_job_id()</code><br><small style="color:var(--muted)">discover.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>process_feed()</code><br><small style="color:var(--muted)">discover.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>extract_job_id() node in discover.py.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>process_feed()</code><br><small style="color:var(--muted)">discover.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>main()</code><br><small style="color:var(--muted)">discover.py</small></td>
+  <td><code>extract_job_id()</code><br><small style="color:var(--muted)">discover.py</small><br><code>extract_location()</code><br><small style="color:var(--muted)">discover.py</small><br><code>fetch_feed()</code><br><small style="color:var(--muted)">discover.py</small><br>+2 more</td>
+  <td>process_feed() node in discover.py.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>sanitize_html()</code><br><small style="color:var(--muted)">discover.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>process_feed()</code><br><small style="color:var(--muted)">discover.py</small><br><code>test_suite()</code><br><small style="color:var(--muted)">tests.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>Exports documentation data to a target format.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>Generate a stable unique ID from a job URL.</code><br><small style="color:var(--muted)">discover.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Generate a stable unique ID from a job URL..</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>Strip HTML tags and decode entities. Feed text is not trusted.</code><br><small style="color:var(--muted)">discover.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Strip HTML tags and decode entities. Feed text is not trusted..</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>Process a single RSS feed and return new job listings. seen is read-only: feeds…</code><br><small style="color:var(--muted)">discover.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Process a single RSS feed and return new job listings. seen is read-only: feeds….</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>check_feeds()</code><br><small style="color:var(--muted)">discover.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>fetch_feed()</code><br><small style="color:var(--muted)">discover.py</small></td>
+  <td>check_feeds() node in discover.py.</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>fetch_feed()</code><br><small style="color:var(--muted)">discover.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>check_feeds()</code><br><small style="color:var(--muted)">discover.py</small><br><code>process_feed()</code><br><small style="color:var(--muted)">discover.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>fetch_feed() node in discover.py.</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><code>FeedParserDict</code><br><small style="color:var(--muted)"></small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>FeedParserDict node in project.</td>
+</tr>
+<tr>
+  <td>10</td>
+  <td><code>Print feed health without touching the store.</code><br><small style="color:var(--muted)">discover.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Print feed health without touching the store..</td>
+</tr>
+<tr>
+  <td>11</td>
+  <td><code>Fetch and parse an RSS feed. No retries: the daily run is the retry.</code><br><small style="color:var(--muted)">discover.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Fetch and parse an RSS feed. No retries: the daily run is the retry..</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>discover.py</code></td><td>10 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: explains x5, calls x4, references x1. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 4. Serving API ====== -->
+<h2 id="serve-api">4. Serving API</h2>
+<p>Serving API groups implementation around dashboardpy, serve, page, dashboard, mostly in dashboard.py. This section covers 12 nodes and 12 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Serving API (12 nodes, 12 edges)
+    subgraph serve_api_dashboard_py_66643da5["dashboard.py"]
+        dashboard_handler_067007cc("Handler<br/><small>dashboard.py</small>")
+        dashboard_serve_4da07013("serve()<br/><small>dashboard.py</small>")
+        dashboard_handler_do_get_32fb619f("do_GET()<br/><small>dashboard.py</small>")
+        dashboard_handler_do_post_b7ebb790("do_POST()<br/><small>dashboard.py</small>")
+        dashboard_handler_log_message_08fa95d8("log_message()<br/><small>dashboard.py</small>")
+        dashboard_already_running_2915b6f8("_already_running()<br/><small>dashboard.py</small>")
+        dashboard_page_12dc22a5("_page()<br/><small>dashboard.py</small>")
+        dashboard_f90453ec("dashboard.py")
+        dashboard_rationale_79_b7e168dc("Page shell: palette, head, base CSS.<br/><small>dashboard.py</small>")
+        dashboard_rationale_319_75ff3a8d("Serve the dashboard on PORT, rendering...<br/><small>dashboard.py</small>")
+        dashboard_rationale_1_e312b0b0("dashboard.py — renders the job dashboar...<br/><small>dashboard.py</small>")
+    end
+    basehttprequesthandler_86f2c841("BaseHTTPRequestHandler")
+    dashboard_handler_067007cc -->|method| dashboard_handler_do_get_32fb619f
+    dashboard_handler_067007cc -->|method| dashboard_handler_do_post_b7ebb790
+    dashboard_handler_067007cc -->|method| dashboard_handler_log_message_08fa95d8
+    dashboard_serve_4da07013 -->|calls| dashboard_already_running_2915b6f8
+    class dashboard_handler_067007cc klass;
+    class dashboard_serve_4da07013 function;
+    class dashboard_handler_do_get_32fb619f function;
+    class dashboard_handler_do_post_b7ebb790 function;
+    class dashboard_handler_log_message_08fa95d8 function;
+    class dashboard_already_running_2915b6f8 function;
+    class dashboard_page_12dc22a5 function;
+    class dashboard_f90453ec module;
+    class dashboard_rationale_79_b7e168dc concept;
+    class dashboard_rationale_319_75ff3a8d concept;
+    class dashboard_rationale_1_e312b0b0 concept;
+    class basehttprequesthandler_86f2c841 klass;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>Handler</code><br><small style="color:var(--muted)">dashboard.py</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>do_GET()</code><br><small style="color:var(--muted)">dashboard.py</small><br><code>do_POST()</code><br><small style="color:var(--muted)">dashboard.py</small><br><code>log_message()</code><br><small style="color:var(--muted)">dashboard.py</small></td>
+  <td>Handler node in dashboard.py.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>_already_running()</code><br><small style="color:var(--muted)">dashboard.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>serve()</code><br><small style="color:var(--muted)">dashboard.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>_already_running() node in dashboard.py.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>.do_GET()</code><br><small style="color:var(--muted)">dashboard.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>Handler</code><br><small style="color:var(--muted)">dashboard.py</small></td>
+  <td><code>render()</code><br><small style="color:var(--muted)">dashboard.py</small></td>
+  <td>.do_GET() node in dashboard.py.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>.do_POST()</code><br><small style="color:var(--muted)">dashboard.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>Handler</code><br><small style="color:var(--muted)">dashboard.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>.do_POST() node in dashboard.py.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>.log_message()</code><br><small style="color:var(--muted)">dashboard.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>Handler</code><br><small style="color:var(--muted)">dashboard.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>.log_message() node in dashboard.py.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>_page()</code><br><small style="color:var(--muted)">dashboard.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>_build_html()</code><br><small style="color:var(--muted)">dashboard.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>Organizes documentation pages, navigation, or content lookup.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>serve()</code><br><small style="color:var(--muted)">dashboard.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>_already_running()</code><br><small style="color:var(--muted)">dashboard.py</small></td>
+  <td>serve() node in dashboard.py.</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>BaseHTTPRequestHandler</code><br><small style="color:var(--muted)"></small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>BaseHTTPRequestHandler node in project.</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><code>dashboard.py</code><br><small style="color:var(--muted)">dashboard.py</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td><code>tests.py</code><br><small style="color:var(--muted)">tests.py</small></td>
+  <td><code>store.py</code><br><small style="color:var(--muted)">store.py</small></td>
+  <td>Module file in dashboard.py.</td>
+</tr>
+<tr>
+  <td>10</td>
+  <td><code>dashboard.py — renders the job dashboard and serves it locally. Serve-only:…</code><br><small style="color:var(--muted)">dashboard.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for dashboard.py — renders the job dashboard and serves it locally. Serve-only:….</td>
+</tr>
+<tr>
+  <td>11</td>
+  <td><code>Serve the dashboard on PORT, rendering fresh on every request.</code><br><small style="color:var(--muted)">dashboard.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Serve the dashboard on PORT, rendering fresh on every request..</td>
+</tr>
+<tr>
+  <td>12</td>
+  <td><code>Page shell: palette, head, base CSS.</code><br><small style="color:var(--muted)">dashboard.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Page shell: palette, head, base CSS..</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>dashboard.py</code></td><td>11 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x4, method x3, explains x3, inherits x1. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 5. Tests & Fixtures ====== -->
+<h2 id="tests-fixtures">5. Tests &amp; Fixtures</h2>
+<p>Tests &amp; Fixtures groups implementation around testspy, dashboardpy, job, status, mostly in tests.py, dashboard.py, store.py. This section covers 11 nodes and 20 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Tests &amp; Fixtures (11 nodes, 20 edges)
+    subgraph tests_fixtures_tests_py_afe2fdd0["tests.py"]
+        tests_test_suite_3930bbac("test_suite()<br/><small>tests.py</small>")
+        tests_04d13fd0("tests.py")
+        tests_full_job_5aa5f343("full_job()<br/><small>tests.py</small>")
+        tests_job_at_ede0ed16("job_at()<br/><small>tests.py</small>")
+        tests_rationale_1_a2e4a373("Checks on the Argus persistence, discov...<br/><small>tests.py</small>")
+    end
+    subgraph tests_fixtures_dashboard_py_f0a9865b["dashboard.py"]
+        dashboard_render_144a6e7b("render()<br/><small>dashboard.py</small>")
+        dashboard_build_html_577ff235("_build_html()<br/><small>dashboard.py</small>")
+        dashboard_score_job_38397bd6("score_job()<br/><small>dashboard.py</small>")
+        dashboard_rationale_251_e6ca060d("Load the store and return the dashboard...<br/><small>dashboard.py</small>")
+    end
+    subgraph tests_fixtures_store_py_e1c766b4["store.py"]
+        store_get_status_a1b852bc("get_status()<br/><small>store.py</small>")
+        store_rationale_41_57671817("Status of a job row. Blank or missing r...<br/><small>store.py</small>")
+    end
+    dashboard_build_html_577ff235 -->|calls| store_get_status_a1b852bc
+    dashboard_render_144a6e7b -->|calls| store_get_status_a1b852bc
+    dashboard_render_144a6e7b -->|calls| dashboard_score_job_38397bd6
+    dashboard_render_144a6e7b -->|calls| dashboard_build_html_577ff235
+    tests_full_job_5aa5f343 -->|calls| tests_job_at_ede0ed16
+    tests_test_suite_3930bbac -->|calls| dashboard_score_job_38397bd6
+    tests_test_suite_3930bbac -->|calls| tests_job_at_ede0ed16
+    tests_test_suite_3930bbac -->|calls| tests_full_job_5aa5f343
+    tests_test_suite_3930bbac -->|calls| dashboard_render_144a6e7b
+    tests_test_suite_3930bbac -->|calls| store_get_status_a1b852bc
+    tests_test_suite_3930bbac -->|calls| dashboard_build_html_577ff235
+    tests_04d13fd0 -->|imports| dashboard_build_html_577ff235
+    tests_04d13fd0 -->|imports| dashboard_render_144a6e7b
+    tests_04d13fd0 -->|imports| dashboard_score_job_38397bd6
+    class tests_test_suite_3930bbac test;
+    class tests_04d13fd0 test;
+    class tests_full_job_5aa5f343 test;
+    class tests_job_at_ede0ed16 test;
+    class tests_rationale_1_a2e4a373 concept;
+    class dashboard_render_144a6e7b function;
+    class dashboard_build_html_577ff235 function;
+    class dashboard_score_job_38397bd6 function;
+    class dashboard_rationale_251_e6ca060d concept;
+    class store_get_status_a1b852bc function;
+    class store_rationale_41_57671817 concept;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>_build_html()</code><br><small style="color:var(--muted)">dashboard.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>render()</code><br><small style="color:var(--muted)">dashboard.py</small><br><code>test_suite()</code><br><small style="color:var(--muted)">tests.py</small><br><code>tests.py</code><br><small style="color:var(--muted)">tests.py</small></td>
+  <td><code>_page()</code><br><small style="color:var(--muted)">dashboard.py</small><br><code>get_status()</code><br><small style="color:var(--muted)">store.py</small></td>
+  <td>Exports documentation data to a target format.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>render()</code><br><small style="color:var(--muted)">dashboard.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>do_GET()</code><br><small style="color:var(--muted)">dashboard.py</small><br><code>test_suite()</code><br><small style="color:var(--muted)">tests.py</small><br><code>tests.py</code><br><small style="color:var(--muted)">tests.py</small></td>
+  <td><code>_build_html()</code><br><small style="color:var(--muted)">dashboard.py</small><br><code>get_status()</code><br><small style="color:var(--muted)">store.py</small><br><code>load_jobs()</code><br><small style="color:var(--muted)">store.py</small><br>+2 more</td>
+  <td>render() node in dashboard.py.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>score_job()</code><br><small style="color:var(--muted)">dashboard.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>render()</code><br><small style="color:var(--muted)">dashboard.py</small><br><code>test_suite()</code><br><small style="color:var(--muted)">tests.py</small><br><code>tests.py</code><br><small style="color:var(--muted)">tests.py</small></td>
+  <td><code>parse_date()</code><br><small style="color:var(--muted)">store.py</small></td>
+  <td>score_job() node in dashboard.py.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>get_status()</code><br><small style="color:var(--muted)">store.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>_build_html()</code><br><small style="color:var(--muted)">dashboard.py</small><br><code>render()</code><br><small style="color:var(--muted)">dashboard.py</small><br><code>test_suite()</code><br><small style="color:var(--muted)">tests.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>get_status() node in store.py.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>full_job()</code><br><small style="color:var(--muted)">tests.py</small></td>
+  <td><span class="tag tag-func">Test</span></td>
+  <td><code>test_suite()</code><br><small style="color:var(--muted)">tests.py</small></td>
+  <td><code>job_at()</code><br><small style="color:var(--muted)">tests.py</small></td>
+  <td>full_job() node in tests.py.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>job_at()</code><br><small style="color:var(--muted)">tests.py</small></td>
+  <td><span class="tag tag-func">Test</span></td>
+  <td><code>full_job()</code><br><small style="color:var(--muted)">tests.py</small><br><code>test_suite()</code><br><small style="color:var(--muted)">tests.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>job_at() node in tests.py.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>test_suite()</code><br><small style="color:var(--muted)">tests.py</small></td>
+  <td><span class="tag tag-func">Test</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>_build_html()</code><br><small style="color:var(--muted)">dashboard.py</small><br><code>add_jobs()</code><br><small style="color:var(--muted)">store.py</small><br><code>full_job()</code><br><small style="color:var(--muted)">tests.py</small><br>+9 more</td>
+  <td>Verifies imports, entry points, or version behavior.</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>tests.py</code><br><small style="color:var(--muted)">tests.py</small></td>
+  <td><span class="tag tag-func">Test</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>_build_html()</code><br><small style="color:var(--muted)">dashboard.py</small><br><code>dashboard.py</code><br><small style="color:var(--muted)">dashboard.py</small><br><code>discover.py</code><br><small style="color:var(--muted)">discover.py</small><br>+3 more</td>
+  <td>Module file in tests.py.</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><code>Load the store and return the dashboard as an HTML string.</code><br><small style="color:var(--muted)">dashboard.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Load the store and return the dashboard as an HTML string..</td>
+</tr>
+<tr>
+  <td>10</td>
+  <td><code>Status of a job row. Blank or missing reads as &#x27;new&#x27;.</code><br><small style="color:var(--muted)">store.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Status of a job row. Blank or missing reads as &#x27;new&#x27;..</td>
+</tr>
+<tr>
+  <td>11</td>
+  <td><code>Checks on the Argus persistence, discovery, and dashboard seams. Run: python…</code><br><small style="color:var(--muted)">tests.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Checks on the Argus persistence, discovery, and dashboard seams. Run: python….</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>tests.py</code></td><td>5 nodes</td></tr>
+<tr><td><code>dashboard.py</code></td><td>4 nodes</td></tr>
+<tr><td><code>store.py</code></td><td>2 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: calls x11, imports x3, contains x3, explains x3. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 6. store.py ====== -->
+<h2 id="store-py">6. store.py</h2>
+<p>store.py groups implementation around storepy, status, jobs, date, mostly in store.py. This section covers 13 nodes and 19 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: store.py (13 nodes, 19 edges)
+    subgraph store_py_store_py_fa0d90db["store.py"]
+        store_add_jobs_7237b15d("add_jobs()<br/><small>store.py</small>")
+        store_set_status_a7d0643a("set_status()<br/><small>store.py</small>")
+        store_3a21295d("store.py")
+        store_this_week_d37e2e8d("this_week()<br/><small>store.py</small>")
+        store_load_jobs_a945e6da("load_jobs()<br/><small>store.py</small>")
+        store_save_855ae297("_save()<br/><small>store.py</small>")
+        store_load_e072a57f("_load()<br/><small>store.py</small>")
+        store_parse_date_aa2e95de("parse_date()<br/><small>store.py</small>")
+        store_rationale_73_54456f26("Filter already-loaded rows to those dat...<br/><small>store.py</small>")
+        store_rationale_79_cefb1c8d("Parse a stored date; unparseable string...<br/><small>store.py</small>")
+        store_rationale_59_d77e8345("Set a job's status and stamp status_dat...<br/><small>store.py</small>")
+    end
+    subgraph store_py_External_generated_ec54328d["External / generated"]
+        store_py_datetime_4c7eb73b("datetime")
+        path_3150ecd5("Path")
+    end
+    store_add_jobs_7237b15d -->|calls| store_load_jobs_a945e6da
+    store_add_jobs_7237b15d -->|calls| store_save_855ae297
+    store_load_jobs_a945e6da -->|calls| store_load_e072a57f
+    store_set_status_a7d0643a -->|calls| store_load_jobs_a945e6da
+    store_set_status_a7d0643a -->|calls| store_save_855ae297
+    store_this_week_d37e2e8d -->|calls| store_parse_date_aa2e95de
+    store_3a21295d -->|imports| store_py_datetime_4c7eb73b
+    class store_add_jobs_7237b15d function;
+    class store_set_status_a7d0643a function;
+    class store_3a21295d ui;
+    class store_this_week_d37e2e8d function;
+    class store_load_jobs_a945e6da function;
+    class store_save_855ae297 function;
+    class store_load_e072a57f function;
+    class store_parse_date_aa2e95de function;
+    class store_rationale_73_54456f26 concept;
+    class store_rationale_79_cefb1c8d concept;
+    class store_rationale_59_d77e8345 concept;
+    class store_py_datetime_4c7eb73b function;
+    class path_3150ecd5 klass;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>add_jobs()</code><br><small style="color:var(--muted)">store.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>main()</code><br><small style="color:var(--muted)">discover.py</small><br><code>test_suite()</code><br><small style="color:var(--muted)">tests.py</small></td>
+  <td><code>_save()</code><br><small style="color:var(--muted)">store.py</small><br><code>load_jobs()</code><br><small style="color:var(--muted)">store.py</small></td>
+  <td>add_jobs() node in store.py.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>_load()</code><br><small style="color:var(--muted)">store.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>load_jobs()</code><br><small style="color:var(--muted)">store.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>_load() node in store.py.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>load_jobs()</code><br><small style="color:var(--muted)">store.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>add_jobs()</code><br><small style="color:var(--muted)">store.py</small><br><code>load_seen_ids()</code><br><small style="color:var(--muted)">discover.py</small><br><code>render()</code><br><small style="color:var(--muted)">dashboard.py</small><br>+2 more</td>
+  <td><code>_load()</code><br><small style="color:var(--muted)">store.py</small></td>
+  <td>load_jobs() node in store.py.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>parse_date()</code><br><small style="color:var(--muted)">store.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>score_job()</code><br><small style="color:var(--muted)">dashboard.py</small><br><code>test_suite()</code><br><small style="color:var(--muted)">tests.py</small><br><code>this_week()</code><br><small style="color:var(--muted)">store.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>parse_date() node in store.py.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>_save()</code><br><small style="color:var(--muted)">store.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>add_jobs()</code><br><small style="color:var(--muted)">store.py</small><br><code>set_status()</code><br><small style="color:var(--muted)">store.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>_save() node in store.py.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>set_status()</code><br><small style="color:var(--muted)">store.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>test_suite()</code><br><small style="color:var(--muted)">tests.py</small></td>
+  <td><code>_save()</code><br><small style="color:var(--muted)">store.py</small><br><code>load_jobs()</code><br><small style="color:var(--muted)">store.py</small></td>
+  <td>set_status() node in store.py.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>this_week()</code><br><small style="color:var(--muted)">store.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>render()</code><br><small style="color:var(--muted)">dashboard.py</small><br><code>test_suite()</code><br><small style="color:var(--muted)">tests.py</small></td>
+  <td><code>parse_date()</code><br><small style="color:var(--muted)">store.py</small></td>
+  <td>this_week() node in store.py.</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>Path</code><br><small style="color:var(--muted)"></small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Path node in project.</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><code>store.py</code><br><small style="color:var(--muted)">store.py</small></td>
+  <td><span class="tag tag-hook">UI</span></td>
+  <td><code>dashboard.py</code><br><small style="color:var(--muted)">dashboard.py</small><br><code>discover.py</code><br><small style="color:var(--muted)">discover.py</small><br><code>tests.py</code><br><small style="color:var(--muted)">tests.py</small></td>
+  <td><code>datetime</code></td>
+  <td>Module file in store.py.</td>
+</tr>
+<tr>
+  <td>10</td>
+  <td><code>datetime</code><br><small style="color:var(--muted)"></small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>store.py</code><br><small style="color:var(--muted)">store.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>datetime node in project.</td>
+</tr>
+<tr>
+  <td>11</td>
+  <td><code>Set a job&#x27;s status and stamp status_date. False if id or status is unknown.</code><br><small style="color:var(--muted)">store.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Set a job&#x27;s status and stamp status_date. False if id or status is unknown..</td>
+</tr>
+<tr>
+  <td>12</td>
+  <td><code>Filter already-loaded rows to those dated within the last `days`.</code><br><small style="color:var(--muted)">store.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Filter already-loaded rows to those dated within the last `days`..</td>
+</tr>
+<tr>
+  <td>13</td>
+  <td><code>Parse a stored date; unparseable strings sort as oldest-possible.</code><br><small style="color:var(--muted)">store.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Parse a stored date; unparseable strings sort as oldest-possible..</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>store.py</code></td><td>11 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x7, calls x6, explains x3, references x2. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 7. discover.py ====== -->
+<h2 id="discover-py">7. discover.py</h2>
+<p>discover.py groups implementation around discoverpy, summary, configpy, load, mostly in discover.py, config.py. This section covers 8 nodes and 10 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: discover.py (8 nodes, 10 edges)
+    subgraph discover_py_discover_py_8129955a["discover.py"]
+        discover_main_fe05804b("main()<br/><small>discover.py</small>")
+        discover_1eb0b8dc("discover.py")
+        discover_setup_logging_81a14c5a("setup_logging()<br/><small>discover.py</small>")
+        discover_load_seen_ids_d52af6b3("load_seen_ids()<br/><small>discover.py</small>")
+        discover_write_summary_69ee9e66("write_summary()<br/><small>discover.py</small>")
+        discover_rationale_224_881dec86("Print summary to terminal and save to l...<br/><small>discover.py</small>")
+        discover_rationale_1_9a4f0385("discover.py — scrapes DA/BA/analytics j...<br/><small>discover.py</small>")
+    end
+    config_dfba7aad("config.py")
+    discover_main_fe05804b -->|calls| discover_setup_logging_81a14c5a
+    discover_main_fe05804b -->|calls| discover_load_seen_ids_d52af6b3
+    discover_main_fe05804b -->|calls| discover_write_summary_69ee9e66
+    discover_1eb0b8dc -->|imports| config_dfba7aad
+    class discover_main_fe05804b function;
+    class discover_1eb0b8dc module;
+    class discover_setup_logging_81a14c5a function;
+    class discover_load_seen_ids_d52af6b3 function;
+    class discover_write_summary_69ee9e66 function;
+    class discover_rationale_224_881dec86 concept;
+    class discover_rationale_1_9a4f0385 concept;
+    class config_dfba7aad module;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>load_seen_ids()</code><br><small style="color:var(--muted)">discover.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>main()</code><br><small style="color:var(--muted)">discover.py</small></td>
+  <td><code>load_jobs()</code><br><small style="color:var(--muted)">store.py</small></td>
+  <td>load_seen_ids() node in discover.py.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>main()</code><br><small style="color:var(--muted)">discover.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>add_jobs()</code><br><small style="color:var(--muted)">store.py</small><br><code>load_seen_ids()</code><br><small style="color:var(--muted)">discover.py</small><br><code>process_feed()</code><br><small style="color:var(--muted)">discover.py</small><br>+2 more</td>
+  <td>main() node in discover.py.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>setup_logging()</code><br><small style="color:var(--muted)">discover.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>main()</code><br><small style="color:var(--muted)">discover.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>setup_logging() node in discover.py.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>write_summary()</code><br><small style="color:var(--muted)">discover.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>main()</code><br><small style="color:var(--muted)">discover.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>write_summary() node in discover.py.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>config.py</code><br><small style="color:var(--muted)">config.py</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td><code>discover.py</code><br><small style="color:var(--muted)">discover.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>Module file in config.py.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>discover.py</code><br><small style="color:var(--muted)">discover.py</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td><code>tests.py</code><br><small style="color:var(--muted)">tests.py</small></td>
+  <td><code>config.py</code><br><small style="color:var(--muted)">config.py</small><br><code>datetime</code><br><code>store.py</code><br><small style="color:var(--muted)">store.py</small></td>
+  <td>Module file in discover.py.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>discover.py — scrapes DA/BA/analytics jobs from RSS feeds. Adds new listings to…</code><br><small style="color:var(--muted)">discover.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for discover.py — scrapes DA/BA/analytics jobs from RSS feeds. Adds new listings to….</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>Print summary to terminal and save to logs/last_run_summary.txt.</code><br><small style="color:var(--muted)">discover.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Print summary to terminal and save to logs/last_run_summary.txt..</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>discover.py</code></td><td>7 nodes</td></tr>
+<tr><td><code>config.py</code></td><td>1 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x4, calls x3, explains x2, imports x1. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 8. parse_published ====== -->
+<h2 id="parse-published">8. parse_published</h2>
+<p>parse_published groups implementation around discoverpy, parse, published, datetime, mostly in discover.py. This section covers 3 nodes and 2 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: parse_published (3 nodes, 2 edges)
+    subgraph parse_published_discover_py_edf6a7f8["discover.py"]
+        discover_parse_published_adaed807("parse_published()<br/><small>discover.py</small>")
+        discover_rationale_85_dfa6482c("Extract publication date from an RSS en...<br/><small>discover.py</small>")
+    end
+    discover_py_datetime_8b04fb23("datetime")
+    discover_parse_published_adaed807 -->|calls| discover_py_datetime_8b04fb23
+    class discover_parse_published_adaed807 function;
+    class discover_rationale_85_dfa6482c concept;
+    class discover_py_datetime_8b04fb23 function;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>parse_published()</code><br><small style="color:var(--muted)">discover.py</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>process_feed()</code><br><small style="color:var(--muted)">discover.py</small></td>
+  <td><code>datetime</code></td>
+  <td>parse_published() node in discover.py.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>datetime</code><br><small style="color:var(--muted)"></small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>discover.py</code><br><small style="color:var(--muted)">discover.py</small><br><code>parse_published()</code><br><small style="color:var(--muted)">discover.py</small></td>
+  <td>No direct outbound edge</td>
+  <td>datetime node in project.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>Extract publication date from an RSS entry.</code><br><small style="color:var(--muted)">discover.py</small></td>
+  <td><span class="tag tag-func">Concept</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Design note for Extract publication date from an RSS entry..</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>discover.py</code></td><td>2 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: calls x1, explains x1. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<h2 id="stats">Project Statistics</h2>
+
+<div class="grid">
+  <div class="card">
+    <h4>Graph</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><td>Nodes</td><td>60</td></tr>
+      <tr><td>Edges</td><td>107</td></tr>
+      <tr><td>Hyperedges</td><td>0</td></tr>
+      <tr><td>Communities</td><td>8</td></tr>
+      <tr><td>Documented Sections</td><td>7</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Edge Confidence</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><td>EXTRACTED</td><td>107</td></tr>
+      <tr><td>INFERRED</td><td>0</td></tr>
+      <tr><td>AMBIGUOUS</td><td>0</td></tr>
+    </table>
+  </div>
+</div>
+
+<div style="text-align:center; padding:40px 0; color: var(--muted); font-size:0.9rem;">
+  <p>Argus — Architecture Documentation</p>
+  <p>Generated: 2026-08-23 16:47 UTC · graphify callflow-html</p>
+</div>
+
+</div><!-- .container -->
+
+<script>
+(function () {
+  const mermaidConfig = {
+    startOnLoad: false,
+    theme: 'dark',
+    securityLevel: 'loose',
+    flowchart: { htmlLabels: true, useMaxWidth: true },
+    themeVariables: {
+      primaryColor: '#1e293b',
+      primaryTextColor: '#e2e8f0',
+      primaryBorderColor: '#38bdf8',
+      secondaryColor: '#0f172a',
+      tertiaryColor: '#334155',
+      lineColor: '#64748b',
+      textColor: '#e2e8f0',
+    }
+  };
+
+  mermaid.initialize(mermaidConfig);
+
+  function clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value));
+  }
+
+  function enhanceMermaidDiagrams() {
+    document.querySelectorAll('.mermaid').forEach((container) => {
+      if (container.dataset.zoomReady === 'true') return;
+      const svg = container.querySelector('svg');
+      if (!svg) return;
+
+      container.dataset.zoomReady = 'true';
+      container.classList.add('is-enhanced');
+
+      const viewport = document.createElement('div');
+      viewport.className = 'mermaid-viewport';
+      svg.parentNode.insertBefore(viewport, svg);
+      viewport.appendChild(svg);
+
+      const toolbar = document.createElement('div');
+      toolbar.className = 'mermaid-toolbar';
+      toolbar.innerHTML = [
+        '<button type="button" data-action="zoom-out" title="Zoom out">-</button>',
+        '<span class="zoom-level" data-role="level">100%</span>',
+        '<button type="button" data-action="zoom-in" title="Zoom in">+</button>',
+        '<button type="button" data-action="fit" title="Fit width">Fit</button>',
+        '<button type="button" data-action="reset" title="Reset view">Reset</button>'
+      ].join('');
+      container.insertBefore(toolbar, viewport);
+
+      const state = { scale: 1, x: 0, y: 0, dragging: false, startX: 0, startY: 0, originX: 0, originY: 0 };
+      const level = toolbar.querySelector('[data-role="level"]');
+
+      function applyTransform() {
+        svg.style.transform = `translate(${state.x}px, ${state.y}px) scale(${state.scale})`;
+        level.textContent = `${Math.round(state.scale * 100)}%`;
+      }
+
+      function zoomBy(delta) {
+        state.scale = clamp(state.scale + delta, 0.25, 3);
+        applyTransform();
+      }
+
+      function reset() {
+        state.scale = 1;
+        state.x = 0;
+        state.y = 0;
+        applyTransform();
+      }
+
+      function fitWidth() {
+        const rawWidth = svg.viewBox && svg.viewBox.baseVal && svg.viewBox.baseVal.width
+          ? svg.viewBox.baseVal.width
+          : svg.getBoundingClientRect().width / state.scale;
+        if (!rawWidth) {
+          reset();
+          return;
+        }
+        state.scale = clamp((viewport.clientWidth - 48) / rawWidth, 0.25, 1.4);
+        state.x = 0;
+        state.y = 0;
+        applyTransform();
+      }
+
+      toolbar.addEventListener('click', (event) => {
+        const button = event.target.closest('button[data-action]');
+        if (!button) return;
+        const action = button.dataset.action;
+        if (action === 'zoom-in') zoomBy(0.15);
+        if (action === 'zoom-out') zoomBy(-0.15);
+        if (action === 'fit') fitWidth();
+        if (action === 'reset') reset();
+      });
+
+      viewport.addEventListener('wheel', (event) => {
+        if (!event.ctrlKey && !event.metaKey) return;
+        event.preventDefault();
+        zoomBy(event.deltaY < 0 ? 0.1 : -0.1);
+      }, { passive: false });
+
+      viewport.addEventListener('pointerdown', (event) => {
+        if (event.button !== 0) return;
+        state.dragging = true;
+        state.startX = event.clientX;
+        state.startY = event.clientY;
+        state.originX = state.x;
+        state.originY = state.y;
+        viewport.classList.add('is-dragging');
+        viewport.setPointerCapture(event.pointerId);
+      });
+
+      viewport.addEventListener('pointermove', (event) => {
+        if (!state.dragging) return;
+        state.x = state.originX + event.clientX - state.startX;
+        state.y = state.originY + event.clientY - state.startY;
+        applyTransform();
+      });
+
+      function endDrag(event) {
+        if (!state.dragging) return;
+        state.dragging = false;
+        viewport.classList.remove('is-dragging');
+        if (viewport.hasPointerCapture(event.pointerId)) {
+          viewport.releasePointerCapture(event.pointerId);
+        }
+      }
+
+      viewport.addEventListener('pointerup', endDrag);
+      viewport.addEventListener('pointercancel', endDrag);
+      applyTransform();
+    });
+  }
+
+  function renderMermaid() {
+    const result = mermaid.run
+      ? mermaid.run({ querySelector: '.mermaid' })
+      : Promise.resolve();
+    Promise.resolve(result)
+      .then(enhanceMermaidDiagrams)
+      .catch((error) => {
+        console.error('Mermaid render failed:', error);
+        enhanceMermaidDiagrams();
+      });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', renderMermaid);
+  } else {
+    renderMermaid();
+  }
+})();
+</script>
+
+</body>
+</html>

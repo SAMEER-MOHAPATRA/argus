@@ -26,6 +26,22 @@ Open questions, not yet written. Take them in any order.
 | Trust and sanitizing | Why is all feed text stripped to plain text before storage, and why does the dashboard escape again at render? | `discover.py` — `sanitize_html`; `dashboard.py` |
 | Scheduled runs | How does a daily run work, and where does its output go? | `refresh.bat`, `logs/last_run_summary.txt` |
 
+## Generated
+
+| File | What it is | Caveats |
+|---|---|---|
+| [callflow.html](callflow.html) | Call-flow and architecture diagrams built by `graphify` from the AST. 8 Mermaid diagrams, 7 call tables. Open it in a browser. | Regenerate after code changes, or it goes stale. Sections 2-5 carry graphify's generic template names, not names derived from Argus. Needs an internet connection: Mermaid loads from a CDN. |
+
+Rebuild it with:
+
+```
+graphify extract . --code-only --out .
+graphify cluster-only .
+graphify export callflow-html --graph graphify-out/graph.json --output docs/explained/callflow.html
+```
+
+`graphify-out/` is git-ignored. It holds the graph and its AST cache.
+
 ## Conventions
 
 - One topic per file. Number the files so the order is clear.
